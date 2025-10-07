@@ -1,0 +1,40 @@
+services:
+  postgres:
+    container_name: aware_me_postgresql
+    image: postgres:latest
+    restart: always
+    environment:
+      POSTGRES_USER: aware_me_user
+      POSTGRES_PASSWORD: aware_me_password
+      POSTGRES_DB: aware_me_db
+    ports:
+      - 5435:5432
+    volumes:
+      - aware_me_postgres:/var/lib/postgresql
+    networks:
+      - aware_me
+
+  adminer:
+    container_name: aware_me_adminer
+    image: adminer:latest
+    restart: always
+    ports:
+      - 8085:8080
+    networks:
+      - aware_me
+
+  phpmyadmin:
+    container_name: aware_me_phpmyadmin
+    image: phpmyadmin:latest
+    restart: always
+
+    ports:
+      - 8086:80
+    networks:
+      - aware_me
+
+networks:
+  aware_me:
+
+volumes:
+  aware_me_postgres:
