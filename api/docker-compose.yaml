@@ -13,6 +13,20 @@ services:
       - aware_me_postgres:/var/lib/postgresql
     networks:
       - aware_me
+  
+  mariadb:
+    container_name: aware_me_mariadb
+    image: mariadb:latest
+    restart: always
+    environment:
+      MARIADB_ROOT_PASSWORD: root
+      MARIADB_DATABASE: aware_me
+    ports:
+      - 3316:3306
+    volumes:
+      - aware_me_mariadb:/var/lib/mysql
+    networks:
+      - aware_me
 
   adminer:
     container_name: aware_me_adminer
@@ -38,3 +52,4 @@ networks:
 
 volumes:
   aware_me_postgres:
+  aware_me_mariadb:

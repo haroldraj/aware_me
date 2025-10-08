@@ -32,6 +32,8 @@ import 'package:installed_apps/app_info.dart';
 import 'package:logger/logger.dart';
 import 'package:installed_apps/installed_apps.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
 
 void main() => runApp(AppUsageApp());
 
@@ -45,6 +47,19 @@ class AppUsageApp extends StatefulWidget {
 class AppUsageAppState extends State<AppUsageApp> {
   List<AppUsageInfo> _infos = [];
   var logger = Logger();
+
+  Future<String> getOrCreateUserId() async {
+    final prefs = await SharedPreferences.getInstance();
+    String? userId = prefs.getString("userId");
+    if (userId == null) {
+      setState(() {
+        userId = Uuid().v4();
+      });
+      prefs.setString("userId", userId!);
+    }
+    logger.w(userId);
+    return userId!;
+  }
 
   @override
   void initState() {
@@ -76,11 +91,38 @@ class AppUsageAppState extends State<AppUsageApp> {
   }
 
   Future<void> sendToAPI() async {
-    var url = "https://b9304ae91e3f.ngrok-free.app/appusagedata?name=Flutter";
-
+    var baseUrl = "https://b9304ae91e3f.ngrok-free.app";
+    bool test = false;
     try {
-      var repsonse = await http.post(Uri.parse(url));
-      logger.i(jsonDecode(repsonse.body));
+      if (test) {
+        var testUrl = "$baseUrl/test?name=${_infos[0].appName}";
+        var testRepsonse = await http.post(Uri.parse(testUrl));
+        logger.i(jsonDecode(testRepsonse.body));
+      } else {
+        var url = "$baseUrl/app_usage_data";
+        
+        String userId = await getOrCreateUserId();
+
+        final List<Map<String, dynamic>> appUsageInfoList = _infos
+            .map(
+              (info) => {
+                "userId": userId.toString(),
+                "packageName": info.packageName,
+                "appName": info.appName,
+                "usage": info.usage.inSeconds,
+                "startDate": info.startDate.toIso8601String(),
+                "endDate": info.endDate.toIso8601String(),
+              },
+            )
+            .toList();
+
+        var response = await http.post(
+          Uri.parse(url),
+          headers: {"Content-Type": "application/json; charset=UTF-8"},
+          body: jsonEncode(appUsageInfoList),
+        );
+        logger.i(jsonDecode(response.body));
+      }
     } catch (exception) {
       logger.e(exception);
     }
