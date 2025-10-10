@@ -14,42 +14,42 @@ services:
     networks:
       - aware_me
   
-  mariadb:
-    container_name: aware_me_mariadb
-    image: mariadb:latest
-    restart: always
-    environment:
-      MARIADB_ROOT_PASSWORD: root
-      MARIADB_DATABASE: aware_me
-    ports:
-      - 3316:3306
-    volumes:
-      - aware_me_mariadb:/var/lib/mysql
-    networks:
-      - aware_me
+  #mariadb:
+   # container_name: aware_me_mariadb
+   # image: mariadb:latest
+   # restart: always
+   # environment:
+    #  MARIADB_ROOT_PASSWORD: root
+     # MARIADB_DATABASE: aware_me
+   # ports:
+    #  - 3316:3306
+   # volumes:
+    #  - aware_me_mariadb:/var/lib/mysql
+    #networks:
+     # - aware_me
 
-  adminer:
-    container_name: aware_me_adminer
-    image: adminer:latest
-    restart: always
-    ports:
-      - 8085:8080
-    networks:
-      - aware_me
+  #adminer:
+   # container_name: aware_me_adminer
+   # image: adminer:latest
+   # restart: always
+   # ports:
+    #  - 8085:8080
+   # networks:
+    #  - aware_me
 
-  phpmyadmin:
-    container_name: aware_me_phpmyadmin
-    image: phpmyadmin:latest
-    restart: always
+#  phpmyadmin:
+ #   container_name: aware_me_phpmyadmin
+  #  image: phpmyadmin:latest
+   # restart: always
 
-    ports:
-      - 8086:80
-    networks:
-      - aware_me
+   # ports:
+   #   - 8086:80
+    #networks:
+     # - aware_me
 
 networks:
   aware_me:
 
 volumes:
   aware_me_postgres:
-  aware_me_mariadb:
+  #aware_me_mariadb:
