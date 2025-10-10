@@ -1,4 +1,5 @@
 import 'package:flutter/services.dart';
+import 'package:logger/logger.dart';
 
 class UsageStatsService {
   static const platform = MethodChannel('app.usage.stats/channel');
@@ -29,6 +30,7 @@ class UsageStatsService {
   static Future<List<AppUsageInfo>> getUsageStats() async {
     try {
       final List<dynamic> result = await platform.invokeMethod('getUsageStats');
+
       return result.map((data) => AppUsageInfo.fromMap(data)).toList();
     } on PlatformException catch (e) {
       print("Error getting usage stats: ${e.message}");

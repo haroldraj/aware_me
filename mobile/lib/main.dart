@@ -24,16 +24,15 @@ class AppUsageTrackerApp extends StatelessWidget {
 }
 */
 import 'dart:convert';
-import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:app_usage/app_usage.dart';
-import 'package:installed_apps/app_info.dart';
+//import 'package:app_usage/app_usage.dart';
 import 'package:logger/logger.dart';
-import 'package:installed_apps/installed_apps.dart';
+//import 'package:installed_apps/installed_apps.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
+import 'package:aware_me/services/usage_service.dart';
 
 void main() => runApp(AppUsageApp());
 
@@ -74,6 +73,7 @@ class AppUsageAppState extends State<AppUsageApp> {
         startOfDay,
         now,
       );
+      var eventLog = await AppUsage().getAppEvents(startOfDay, now);
       List<AppUsageInfo> normalized = infoList.map((info) {
         return AppUsageInfo(
           info.packageName,
@@ -83,7 +83,7 @@ class AppUsageAppState extends State<AppUsageApp> {
           info.lastForeground,
         );
       }).toList();
-      logger.i(normalized);
+      //logger.i(normalized);
       setState(() => _infos = normalized);
     } catch (exception) {
       logger.e(exception);
@@ -91,7 +91,7 @@ class AppUsageAppState extends State<AppUsageApp> {
   }
 
   Future<void> sendToAPI() async {
-    var baseUrl = "https://b9304ae91e3f.ngrok-free.app";
+    var baseUrl = "https://5c846bafe285.ngrok-free.app";
     bool test = false;
     try {
       if (test) {
@@ -100,7 +100,7 @@ class AppUsageAppState extends State<AppUsageApp> {
         logger.i(jsonDecode(testRepsonse.body));
       } else {
         var url = "$baseUrl/app_usage_data";
-        
+
         String userId = await getOrCreateUserId();
 
         final List<Map<String, dynamic>> appUsageInfoList = _infos
@@ -112,6 +112,7 @@ class AppUsageAppState extends State<AppUsageApp> {
                 "usage": info.usage.inSeconds,
                 "startDate": info.startDate.toIso8601String(),
                 "endDate": info.endDate.toIso8601String(),
+                "lastForegroundDate": info.lastForeground.toIso8601String(),
               },
             )
             .toList();
