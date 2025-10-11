@@ -46,6 +46,7 @@ class AppUsageApp extends StatefulWidget {
 class AppUsageAppState extends State<AppUsageApp> {
   List<AppUsageInfo> _infos = [];
   var logger = Logger();
+  var selectedPage = '';
 
   Future<String> getOrCreateUserId() async {
     final prefs = await SharedPreferences.getInstance();
@@ -146,6 +147,41 @@ class AppUsageAppState extends State<AppUsageApp> {
           ),
           backgroundColor: Colors.deepPurple,
           foregroundColor: Colors.white,
+        ),
+        drawer: Drawer(
+          child: ListView(
+            children: [
+              const DrawerHeader(child: Text("Methods")),
+              ListTile(
+                leading: Icon(Icons.add),
+                title: Text("App Usage"),
+                onTap: () {
+                  setState(() {
+                    selectedPage = "App Usage Package";
+                  });
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.remove),
+                title: Text("Custom"),
+                onTap: () {
+                  setState(() {
+                    selectedPage = "Custom Implementation";
+                    logger.i(selectedPage);
+                  });
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.delete),
+                title: Text("Usage Stats"),
+                onTap: () {
+                  setState(() {
+                    selectedPage = "Usage Stats Package";
+                  });
+                },
+              ),
+            ],
+          ),
         ),
         body: ListView.builder(
           itemCount: _infos.length,
