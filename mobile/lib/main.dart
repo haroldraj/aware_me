@@ -74,7 +74,7 @@ class AppUsageAppState extends State<AppUsageApp> {
         startOfDay,
         now,
       );
-      var eventLog = await AppUsage().getAppEvents(startOfDay, now);
+      //  var eventLog = await AppUsage().getAppEvents(startOfDay, now);
       List<AppUsageInfo> normalized = infoList.map((info) {
         return AppUsageInfo(
           info.packageName,
@@ -84,7 +84,7 @@ class AppUsageAppState extends State<AppUsageApp> {
           info.lastForeground,
         );
       }).toList();
-      //logger.i(normalized);
+      logger.i(normalized);
       setState(() => _infos = normalized);
     } catch (exception) {
       logger.e(exception);
