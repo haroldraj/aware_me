@@ -1,54 +1,23 @@
-/*
-import 'package:flutter/material.dart';
-import 'screens/usage_stats_screen.dart';
-
-void main() {
-  runApp(const AppUsageTrackerApp());
-}
-
-class AppUsageTrackerApp extends StatelessWidget {
-  const AppUsageTrackerApp({Key? key}) : super(key: key);
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'App Usage Tracker',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.deepPurple,
-        useMaterial3: true,
-        appBarTheme: const AppBarTheme(centerTitle: true, elevation: 0),
-      ),
-      home: const UsageStatsScreen(),
-    );
-  }
-}
-*/
 import 'dart:convert';
 
-import 'package:aware_me/my_app.dart';
-import 'package:aware_me/screens/app_usage_screen.dart';
-import 'package:aware_me/screens/busage_stats_screen.dart';
-import 'package:aware_me/screens/custom_usage_screen.dart';
-import 'package:aware_me/screens/widgets/custom_app_bar.dart';
-import 'package:aware_me/screens/widgets/custom_drawer.dart';
-import 'package:flutter/material.dart';
 import 'package:app_usage/app_usage.dart';
-import 'package:logger/logger.dart';
-//import 'package:installed_apps/installed_apps.dart';
+import 'package:aware_me/screens/custom_usage_screen.dart';
+import 'package:aware_me/screens/usage_stats_screen.dart';
+import 'package:aware_me/screens/widgets/custom_app_bar.dart';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:logger/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
-void main() => runApp(MyApp());
-
-class AppUsageApp extends StatefulWidget {
-  const AppUsageApp({super.key});
+class AppUsageScreen extends StatefulWidget {
+  const AppUsageScreen({super.key});
 
   @override
-  AppUsageAppState createState() => AppUsageAppState();
+  State<AppUsageScreen> createState() => _AppUsageScreenState();
 }
 
-class AppUsageAppState extends State<AppUsageApp> {
+class _AppUsageScreenState extends State<AppUsageScreen> {
   List<AppUsageInfo> _infos = [];
   var logger = Logger();
   var selectedPage = '';
@@ -137,41 +106,88 @@ class AppUsageAppState extends State<AppUsageApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.deepPurple,
-        useMaterial3: true,
-        appBarTheme: const AppBarTheme(centerTitle: true, elevation: 0),
-      ),
-      home: Scaffold(
-        appBar: CustomAppBar(screenTitle: "Usage Stats"),
-        drawer: CustomDrawer(),
-        body: ListView.builder(
-          itemCount: _infos.length,
-          itemBuilder: (context, index) {
-            return ListTile(
-              title: Text(_infos[index].appName),
-
-              trailing: Text(_infos[index].usage.toString()),
-            );
-          },
-        ),
-        floatingActionButton: Column(
-          mainAxisAlignment: MainAxisAlignment.end,
-          spacing: 15,
+    return Scaffold(
+      appBar: CustomAppBar(screenTitle: "App Usage"),
+      drawer: Drawer(
+        backgroundColor: Colors.deepPurple,
+        child: ListView(
           children: [
-            FloatingActionButton(
-              onPressed: getUsageStats,
-              child: Icon(Icons.file_download),
+            DrawerHeader(child: Text("Header")),
+            ListTile(
+              title: Text(
+                "App Usage Screen",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              onTap: () {
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (context) => const AppUsageScreen(),
+                  ),
+                );
+              },
             ),
-            FloatingActionButton(
-              onPressed: () => sendToAPI(),
-              child: Icon(Icons.send),
+            ListTile(
+              title: Text(
+                "Usage Stats Screen",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              onTap: () {
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (context) => const UsageStatsScreen(),
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              title: Text(
+                "Custom Usage Screen",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              onTap: () {
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (context) => const CustomUsageScreen(),
+                  ),
+                );
+              },
             ),
           ],
         ),
       ),
+      /*  body: ListView.builder(
+        itemCount: _infos.length,
+        itemBuilder: (context, index) {
+          return ListTile(
+            title: Text(_infos[index].appName),
+
+            trailing: Text(_infos[index].usage.toString()),
+          );
+        },
+      ),
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        spacing: 15,
+        children: [
+          FloatingActionButton(
+            onPressed: getUsageStats,
+            child: Icon(Icons.file_download),
+          ),
+          FloatingActionButton(
+            onPressed: () => sendToAPI(),
+            child: Icon(Icons.send),
+          ),
+        ],
+      ),*/
     );
   }
 }

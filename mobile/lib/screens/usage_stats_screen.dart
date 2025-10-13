@@ -1,392 +1,180 @@
+import 'package:aware_me/screens/app_usage_screen.dart';
+import 'package:aware_me/screens/custom_usage_screen.dart';
+import 'package:aware_me/screens/widgets/custom_app_bar.dart';
 import 'package:flutter/material.dart';
-import '../services/usage_stats_service.dart';
+import 'package:logger/logger.dart';
+import 'package:usage_stats/usage_stats.dart';
 
 class UsageStatsScreen extends StatefulWidget {
-  const UsageStatsScreen({Key? key}) : super(key: key);
+  const UsageStatsScreen({super.key});
+
   @override
   State<UsageStatsScreen> createState() => _UsageStatsScreenState();
 }
 
 class _UsageStatsScreenState extends State<UsageStatsScreen> {
-  List<AppUsageInfo> _usageStats = [];
-  bool _isLoading = true;
-  bool _hasPermission = false;
-  String _errorMessage = '';
+  List<EventUsageInfo> events = [];
+  Map<String?, NetworkInfo?> _netInfoMap = Map();
+  Logger logger = Logger();
+
   @override
   void initState() {
     super.initState();
-    _checkPermissionAndLoadData();
+
+    initUsage();
   }
 
-  /// Check permission and load usage data
-  Future<void> _checkPermissionAndLoadData() async {
+  Future<void> initUsage() async {
     try {
-      setState(() {
-        _isLoading = true;
-        _errorMessage = '';
-      });
-      final hasPermission = await UsageStatsService.hasUsagePermission();
+      UsageStats.grantUsagePermission();
 
-      if (hasPermission) {
-        final stats = await UsageStatsService.getUsageStats();
-        setState(() {
-          _hasPermission = true;
-          _usageStats = stats;
-          _isLoading = false;
-        });
-      } else {
-        setState(() {
-          _hasPermission = false;
-          _isLoading = false;
-        });
+      DateTime endDate = DateTime.now();
+      DateTime startDate = endDate.subtract(Duration(days: 1));
+
+      List<EventUsageInfo> queryEvents = await UsageStats.queryEvents(
+        startDate,
+        endDate,
+      );
+      logger.w(queryEvents);
+      List<NetworkInfo> networkInfos = await UsageStats.queryNetworkUsageStats(
+        startDate,
+        endDate,
+        networkType: NetworkType.all,
+      );
+
+      Map<String?, NetworkInfo?> netInfoMap = {
+        for (var v in networkInfos) v.packageName: v,
+      };
+
+      List<UsageInfo> t = await UsageStats.queryUsageStats(startDate, endDate);
+
+      for (var i in t) {
+        if (double.parse(i.totalTimeInForeground!) > 0) {
+          logger.i(
+            DateTime.fromMillisecondsSinceEpoch(
+              int.parse(i.firstTimeStamp!),
+            ).toIso8601String(),
+          );
+
+          logger.i(
+            DateTime.fromMillisecondsSinceEpoch(
+              int.parse(i.lastTimeStamp!),
+            ).toIso8601String(),
+          );
+
+          logger.i(i.packageName);
+          logger.i(
+            DateTime.fromMillisecondsSinceEpoch(
+              int.parse(i.lastTimeUsed!),
+            ).toIso8601String(),
+          );
+          logger.i(int.parse(i.totalTimeInForeground!) / 1000 / 60);
+
+          logger.i('-----\n');
+        }
       }
-    } catch (e) {
+
       setState(() {
-        _errorMessage = 'Error loading data: $e';
-        _isLoading = false;
+        logger.w(queryEvents.first.eventType);
+        events = queryEvents.reversed.toList();
+        _netInfoMap = netInfoMap;
       });
+    } catch (err) {
+      logger.e(err);
     }
-  }
-
-  /// Request usage access permission
-  Future<void> _requestPermission() async {
-    await UsageStatsService.openUsageSettings();
-
-    // Show dialog explaining what to do
-    if (!mounted) return;
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Enable Usage Access'),
-        content: const Text(
-          'Please find this app in the list and toggle the switch to grant usage access permission. Then return to the app.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              // Recheck permission after user returns
-              Future.delayed(const Duration(seconds: 1), () {
-                _checkPermissionAndLoadData();
-              });
-            },
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Calculate total usage time across all apps
-  int _getTotalUsageTime() {
-    return _usageStats.fold(0, (sum, app) => sum + app.totalTimeInForeground);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'App Usage Stats',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
+      appBar: CustomAppBar(screenTitle: "Usage Stats"),
+      drawer: Drawer(
         backgroundColor: Colors.deepPurple,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _checkPermissionAndLoadData,
-          ),
-        ],
-      ),
-      body: _buildBody(),
-    );
-  }
-
-  Widget _buildBody() {
-    if (_isLoading) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: ListView(
           children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('Loading usage statistics...'),
-          ],
-        ),
-      );
-    }
-    if (!_hasPermission) {
-      return _buildPermissionRequest();
-    }
-    if (_errorMessage.isNotEmpty) {
-      return _buildErrorState();
-    }
-    if (_usageStats.isEmpty) {
-      return _buildEmptyState();
-    }
-    return _buildUsageStatsList();
-  }
-
-  Widget _buildPermissionRequest() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.security, size: 80, color: Colors.grey[400]),
-            const SizedBox(height: 24),
-            const Text(
-              'Usage Access Required',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'To show app usage statistics, this app needs usage access permission. This permission allows us to read how long you\'ve used other apps.',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16),
-            ),
-            const SizedBox(height: 32),
-            ElevatedButton.icon(
-              onPressed: _requestPermission,
-              icon: const Icon(Icons.settings),
-              label: const Text('Grant Permission'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.deepPurple,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 12,
+            DrawerHeader(child: Text("Header")),
+            ListTile(
+              title: Text(
+                "App Usage Screen",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
+              onTap: () {
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (context) => const AppUsageScreen(),
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              title: Text(
+                "Usage Stats Screen",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              onTap: () {
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (context) => const UsageStatsScreen(),
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              title: Text(
+                "Custom Usage Screen",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              onTap: () {
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (context) => const CustomUsageScreen(),
+                  ),
+                );
+              },
             ),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildErrorState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error_outline, size: 80, color: Colors.red[400]),
-            const SizedBox(height: 24),
-            const Text(
-              'Error Loading Data',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              _errorMessage,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 16),
-            ),
-            const SizedBox(height: 32),
-            ElevatedButton.icon(
-              onPressed: _checkPermissionAndLoadData,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Try Again'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.hourglass_empty, size: 80, color: Colors.grey[400]),
-            const SizedBox(height: 24),
-            const Text(
-              'No Usage Data',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'No app usage data found for the last 24 hours. Use some apps and try again.',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildUsageStatsList() {
-    final totalUsageTime = _getTotalUsageTime();
-
-    return Column(
-      children: [
-        // Summary Card
-        Container(
-          margin: const EdgeInsets.all(16),
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.deepPurple, Colors.purple.shade300],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.deepPurple.withOpacity(0.3),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildSummaryItem(
-                'Total Apps',
-                _usageStats.length.toString(),
-                Icons.apps,
-              ),
-              _buildSummaryItem(
-                'Total Time',
-                _formatTotalTime(totalUsageTime),
-                Icons.timer,
-              ),
-              _buildSummaryItem(
-                'Social Media',
-                _usageStats
-                    .where((app) => app.isSocialMediaApp())
-                    .length
-                    .toString(),
-                Icons.people,
-              ),
-            ],
-          ),
-        ),
-
-        // Apps List
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: _usageStats.length,
+      body: Container(
+        child: RefreshIndicator(
+          onRefresh: initUsage,
+          child: ListView.separated(
             itemBuilder: (context, index) {
-              final app = _usageStats[index];
-              final percentage = app.getUsagePercentage(totalUsageTime);
-
-              return _buildUsageCard(app, percentage);
+              var event = events[index];
+              var networkInfo = _netInfoMap[event.packageName];
+              return ListTile(
+                title: Text(events[index].packageName!),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Last time used: ${DateTime.fromMillisecondsSinceEpoch(int.parse(events[index].timeStamp!)).toIso8601String()}",
+                    ),
+                    networkInfo == null
+                        ? Text("Unknown network usage")
+                        : Text(
+                            "Received bytes: ${networkInfo.rxTotalBytes}\n" +
+                                "Transfered bytes : ${networkInfo.txTotalBytes}",
+                          ),
+                  ],
+                ),
+                trailing: Text(events[index].eventType!),
+              );
             },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSummaryItem(String label, String value, IconData icon) {
-    return Column(
-      children: [
-        Icon(icon, color: Colors.white, size: 28),
-        const SizedBox(height: 8),
-        Text(
-          value,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        Text(
-          label,
-          style: const TextStyle(color: Colors.white70, fontSize: 12),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildUsageCard(AppUsageInfo app, double percentage) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(16),
-        leading: CircleAvatar(
-          backgroundColor: app.isSocialMediaApp()
-              ? Colors.orange.shade100
-              : Colors.blue.shade100,
-          child: Icon(
-            app.isSocialMediaApp() ? Icons.people : Icons.apps,
-            color: app.isSocialMediaApp()
-                ? Colors.orange.shade700
-                : Colors.blue.shade700,
-          ),
-        ),
-        title: Text(
-          app.appName,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 8),
-            Text('Usage time: ${app.formattedTime}'),
-            const SizedBox(height: 8),
-            LinearProgressIndicator(
-              value: percentage / 100,
-              backgroundColor: Colors.grey.shade200,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                app.isSocialMediaApp()
-                    ? Colors.orange.shade600
-                    : Colors.blue.shade600,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '${percentage.toStringAsFixed(1)}% of total usage',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-            ),
-          ],
-        ),
-        trailing: Text(
-          app.formattedTime,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-            color: app.isSocialMediaApp()
-                ? Colors.orange.shade700
-                : Colors.blue.shade700,
+            separatorBuilder: (context, index) => Divider(),
+            itemCount: events.length,
           ),
         ),
       ),
     );
-  }
-
-  String _formatTotalTime(int totalTimeMs) {
-    final hours = totalTimeMs ~/ (1000 * 60 * 60);
-    final minutes = (totalTimeMs % (1000 * 60 * 60)) ~/ (1000 * 60);
-
-    if (hours > 0) {
-      return '${hours}h ${minutes}m';
-    } else {
-      return '${minutes}m';
-    }
   }
 }
