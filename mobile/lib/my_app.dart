@@ -1,4 +1,4 @@
-import 'package:aware_me/screens/usage_stats_screen.dart';
+import 'package:aware_me/screens/app_usage_screen.dart';
 import 'package:flutter/material.dart';
 
 class MyApp extends StatefulWidget {
@@ -18,7 +18,7 @@ class _MyAppState extends State<MyApp> {
         useMaterial3: true,
         appBarTheme: const AppBarTheme(centerTitle: true, elevation: 0),
       ),
-      home: UsageStatsScreen(),
+      home: AppUsageScreen(),
     );
   }
 }

@@ -3,7 +3,8 @@ from typing import Optional
 from datetime import datetime
 from fastapi import FastAPI
 from pydantic import BaseModel
-from sqlmodel import Session, SQLModel, create_engine, Field
+from sqlmodel import Session, SQLModel, create_engine, Field, UniqueConstraint
+from sqlalchemy.dialects.postgresql import insert
 # from model.base_model import EventInfoRequest, AppUsageRequest
 # from model.sql_model import EventInfo, AppUsage
 
@@ -34,6 +35,11 @@ class EventInfo(SQLModel, table=True):
     eventDate: datetime
     className: str
 
+    __table_args__ = (
+        UniqueConstraint("userId", "packageName", "eventType",
+                         "eventDate", "className", name="unique_event"),
+    )
+
 
 class AppUsage(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -44,6 +50,11 @@ class AppUsage(SQLModel, table=True):
     startDate: datetime
     endDate: datetime
     lastForegroundDate: datetime
+
+    __table_args__ = (
+        UniqueConstraint("userId", "packageName", "startDate",
+                         "endDate", "lastForegroundDate", name="unique_usage"),
+    )
 
 
 app = FastAPI()
@@ -67,36 +78,57 @@ def post_test(name: str = "Test"):
 @app.post("/app_usage")
 def app_usage_data(appusagerequest: list[AppUsageRequest]):
     with Session(engine) as session:
-        for data in appusagerequest:
-            record = AppUsage(
-                userId=data.userId,
-                packageName=data.packageName,
-                appName=data.appName,
-                usage=data.usage,
-                startDate=data.startDate,
-                endDate=data.endDate,
-                lastForegroundDate=data.lastForegroundDate
-            )
-            session.add(record)
-
+        stmt = insert(AppUsage).values([
+            {
+                "userId": data.userId,
+                "packageName": data.packageName,
+                "appName": data.appName,
+                "usage": data.usage,
+                "startDate": data.startDate,
+                "endDate": data.endDate,
+                "lastForegroundDate": data.lastForegroundDate,
+            }
+            for data in appusagerequest
+        ])
+        stmt = stmt.on_conflict_do_nothing(
+            index_elements=["userId", "packageName",
+                            "startDate", "endDate", "lastForegroundDate",]
+        )
+        result = session.exec(stmt)
         session.commit()
 
-    return {"message": f"{len(appusagerequest)} records saved successfully."}
+    inserted = result.rowcount or 0
+    duplicates = len(appusagerequest) - inserted
+
+    return {
+        "message": f"{inserted} new records inserted successfully.",
+        "duplicates_skipped": duplicates
+    }
 
 
 @app.post("/event_info")
 def event_data(eventInfoRequest: list[EventInfoRequest]):
     with Session(engine) as session:
-        for data in eventInfoRequest:
-            record = EventInfo(
-                userId=data.userId,
-                packageName=data.packageName,
-                eventType=data.eventType,
-                eventDate=data.eventDate,
-                className=data.className
-            )
-            session.add(record)
-
+        stmt = insert(EventInfo).values([
+            {
+                "userId": d.userId,
+                "packageName": d.packageName,
+                "eventType": d.eventType,
+                "eventDate": d.eventDate,
+                "className": d.className
+            } for d in eventInfoRequest
+        ])
+        stmt = stmt.on_conflict_do_nothing(
+            index_elements=["userId", "packageName",
+                            "eventType", "eventDate", "className",]
+        )
+        result = session.exec(stmt)
         session.commit()
 
-    return {"message": f"{len(eventInfoRequest)} records saved successfully."}
+    inserted = result.rowcount or 0
+    duplicates = len(eventInfoRequest) - inserted
+
+    return {
+        "message": f"{inserted} new records inserted successfully.",
+        "duplicates_skipped": duplicates
+    }
