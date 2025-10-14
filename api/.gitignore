@@ -3,3 +3,4 @@ env
 /__pycache__
 ngrok.txt
 /model/__pycache__
+/src/__pycache__
