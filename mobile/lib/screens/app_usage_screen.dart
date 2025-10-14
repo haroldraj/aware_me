@@ -1,9 +1,8 @@
 import 'dart:convert';
 
 import 'package:app_usage/app_usage.dart';
-import 'package:aware_me/screens/custom_usage_screen.dart';
-import 'package:aware_me/screens/usage_stats_screen.dart';
-import 'package:aware_me/screens/widgets/custom_app_bar.dart';
+import 'package:aware_me/constants/constants.dart';
+import 'package:aware_me/screens/widgets/custom_drawer.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:logger/logger.dart';
@@ -21,6 +20,7 @@ class _AppUsageScreenState extends State<AppUsageScreen> {
   List<AppUsageInfo> _infos = [];
   var logger = Logger();
   var selectedPage = '';
+  int _infosCount = 0;
 
   Future<String> getOrCreateUserId() async {
     final prefs = await SharedPreferences.getInstance();
@@ -38,17 +38,18 @@ class _AppUsageScreenState extends State<AppUsageScreen> {
   @override
   void initState() {
     super.initState();
+    getUsageStats();
   }
 
-  void getUsageStats() async {
+  Future<void> getUsageStats() async {
     try {
       DateTime now = DateTime.now();
-      DateTime startOfDay = DateTime(now.year, now.month, now.day, 5, 1);
+      DateTime startOfDay = DateTime(now.year, now.month, now.day, 0, 1);
       List<AppUsageInfo> infoList = await AppUsage().getAppUsage(
         startOfDay,
         now,
       );
-      //  var eventLog = await AppUsage().getAppEvents(startOfDay, now);
+
       List<AppUsageInfo> normalized = infoList.map((info) {
         return AppUsageInfo(
           info.packageName,
@@ -58,47 +59,42 @@ class _AppUsageScreenState extends State<AppUsageScreen> {
           info.lastForeground,
         );
       }).toList();
-      logger.i(normalized);
-      setState(() => _infos = normalized);
+      //logger.i(normalized);
+      setState(() {
+        _infos = normalized;
+        _infosCount = _infos.length;
+      });
     } catch (exception) {
       logger.e(exception);
     }
   }
 
   Future<void> sendToAPI() async {
-    var baseUrl = "https://5c846bafe285.ngrok-free.app";
-    bool test = false;
     try {
-      if (test) {
-        var testUrl = "$baseUrl/test?name=${_infos[0].appName}";
-        var testRepsonse = await http.post(Uri.parse(testUrl));
-        logger.i(jsonDecode(testRepsonse.body));
-      } else {
-        var url = "$baseUrl/app_usage_data";
+      var url = "${Url.base}/app_usage";
 
-        String userId = await getOrCreateUserId();
+      String userId = await getOrCreateUserId();
 
-        final List<Map<String, dynamic>> appUsageInfoList = _infos
-            .map(
-              (info) => {
-                "userId": userId.toString(),
-                "packageName": info.packageName,
-                "appName": info.appName,
-                "usage": info.usage.inSeconds,
-                "startDate": info.startDate.toIso8601String(),
-                "endDate": info.endDate.toIso8601String(),
-                "lastForegroundDate": info.lastForeground.toIso8601String(),
-              },
-            )
-            .toList();
+      final List<Map<String, dynamic>> appUsageInfoList = _infos
+          .map(
+            (info) => {
+              "userId": userId.toString(),
+              "packageName": info.packageName,
+              "appName": info.appName,
+              "usage": info.usage.inSeconds,
+              "startDate": info.startDate.toIso8601String(),
+              "endDate": info.endDate.toIso8601String(),
+              "lastForegroundDate": info.lastForeground.toIso8601String(),
+            },
+          )
+          .toList();
 
-        var response = await http.post(
-          Uri.parse(url),
-          headers: {"Content-Type": "application/json; charset=UTF-8"},
-          body: jsonEncode(appUsageInfoList),
-        );
-        logger.i(jsonDecode(response.body));
-      }
+      var response = await http.post(
+        Uri.parse(url),
+        headers: {"Content-Type": "application/json; charset=UTF-8"},
+        body: jsonEncode(appUsageInfoList),
+      );
+      logger.i(jsonDecode(response.body));
     } catch (exception) {
       logger.e(exception);
     }
@@ -107,87 +103,42 @@ class _AppUsageScreenState extends State<AppUsageScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: CustomAppBar(screenTitle: "App Usage"),
-      drawer: Drawer(
-        backgroundColor: Colors.deepPurple,
-        child: ListView(
+      appBar: AppBar(
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            DrawerHeader(child: Text("Header")),
-            ListTile(
-              title: Text(
-                "App Usage Screen",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              onTap: () {
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(
-                    builder: (context) => const AppUsageScreen(),
-                  ),
-                );
-              },
+            Text(
+              "App Usage",
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
-            ListTile(
-              title: Text(
-                "Usage Stats Screen",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              onTap: () {
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(
-                    builder: (context) => const UsageStatsScreen(),
-                  ),
-                );
-              },
-            ),
-            ListTile(
-              title: Text(
-                "Custom Usage Screen",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              onTap: () {
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(
-                    builder: (context) => const CustomUsageScreen(),
-                  ),
-                );
-              },
+            Text(
+              "Count: $_infosCount apps",
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ],
         ),
+        backgroundColor: Colors.deepPurple,
+        foregroundColor: Colors.white,
       ),
-      /*  body: ListView.builder(
-        itemCount: _infos.length,
-        itemBuilder: (context, index) {
-          return ListTile(
-            title: Text(_infos[index].appName),
-
-            trailing: Text(_infos[index].usage.toString()),
-          );
-        },
+      drawer: CustomDrawer(),
+      body: RefreshIndicator(
+        onRefresh: getUsageStats,
+        child: ListView.separated(
+          itemCount: _infosCount,
+          itemBuilder: (context, index) {
+            return ListTile(
+              title: Text(_infos[index].packageName),
+              subtitle: Text(_infos[index].appName),
+              trailing: Text(_infos[index].usage.toString()),
+            );
+          },
+          separatorBuilder: (context, index) => Divider(),
+        ),
       ),
-      floatingActionButton: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        spacing: 15,
-        children: [
-          FloatingActionButton(
-            onPressed: getUsageStats,
-            child: Icon(Icons.file_download),
-          ),
-          FloatingActionButton(
-            onPressed: () => sendToAPI(),
-            child: Icon(Icons.send),
-          ),
-        ],
-      ),*/
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => sendToAPI(),
+        child: Icon(Icons.send),
+      ),
     );
   }
 }
