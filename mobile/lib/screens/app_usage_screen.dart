@@ -27,6 +27,36 @@ class _AppUsageScreenState extends State<AppUsageScreen> {
     getUsageStats();
   }
 
+  void _showResponseDialog(
+    BuildContext context, {
+    required String title,
+    required String message,
+  }) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          title: Text(
+            title,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          content: Text(message),
+
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text("OK"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> getUsageStats() async {
     try {
       DateTime now = DateTime.now();
@@ -55,7 +85,7 @@ class _AppUsageScreenState extends State<AppUsageScreen> {
     }
   }
 
-  Future<void> sendToAPI() async {
+  Future<void> sendToAPI(BuildContext context) async {
     try {
       var url = "${Url.base}/app_usage";
       String userId = await UserService().getUserId();
@@ -78,9 +108,32 @@ class _AppUsageScreenState extends State<AppUsageScreen> {
         headers: {"Content-Type": "application/json; charset=UTF-8"},
         body: jsonEncode(appUsageInfoList),
       );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        _showResponseDialog(
+          // ignore: use_build_context_synchronously
+          context,
+          title: "Data Sent",
+          message:
+              "${data['message']}\n${data['duplicates_skipped']} existing records skipped.",
+        );
+      } else {
+        _showResponseDialog(
+          // ignore: use_build_context_synchronously
+          context,
+          title: "Error",
+          message: "Server responded with status code ${response.statusCode}.",
+        );
+      }
       logger.i(jsonDecode(response.body));
     } catch (exception) {
       logger.e(exception);
+      _showResponseDialog(
+        // ignore: use_build_context_synchronously
+        context,
+        title: "⚠️ Exception",
+        message: exception.toString(),
+      );
     }
   }
 
@@ -104,23 +157,25 @@ class _AppUsageScreenState extends State<AppUsageScreen> {
         backgroundColor: Colors.deepPurple,
         foregroundColor: Colors.white,
       ),
-      drawer: CustomDrawer(screenName: "App Usage",),
+      drawer: CustomDrawer(screenName: "App Usage"),
       body: RefreshIndicator(
         onRefresh: getUsageStats,
         child: ListView.separated(
           itemCount: _infosCount,
           itemBuilder: (context, index) {
-            return ListTile(
-              title: Text(_infos[index].packageName),
-              subtitle: Text(_infos[index].appName),
-              trailing: Text(_infos[index].usage.toString()),
-            );
+            return _infosCount != 0
+                ? ListTile(
+                    title: Text(_infos[index].packageName),
+                    subtitle: Text(_infos[index].appName),
+                    trailing: Text(_infos[index].usage.toString()),
+                  )
+                : Center(child: Text("No data yet."));
           },
           separatorBuilder: (context, index) => Divider(),
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => sendToAPI(),
+        onPressed: () => sendToAPI(context),
         child: Icon(Icons.send),
       ),
     );

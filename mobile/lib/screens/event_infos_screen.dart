@@ -55,7 +55,37 @@ class _EventInfosScreenState extends State<EventInfosScreen> {
     }
   }
 
-  Future<void> sendToAPI() async {
+  void _showResponseDialog(
+    BuildContext context, {
+    required String title,
+    required String message,
+  }) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          title: Text(
+            title,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          content: Text(message),
+
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text("OK"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> sendToAPI(BuildContext context) async {
     try {
       var url = "${Url.base}/event_info";
       String userId = await UserService().getUserId();
@@ -78,12 +108,31 @@ class _EventInfosScreenState extends State<EventInfosScreen> {
         body: jsonEncode(eventInfoList),
       );
       if (response.statusCode == 200) {
-        logger.i(jsonDecode(response.body));
+        final data = jsonDecode(response.body);
+        _showResponseDialog(
+          // ignore: use_build_context_synchronously
+          context,
+          title: "Data Sent",
+          message:
+              "${data['message']}\n${data['duplicates_skipped']} existing records skipped.",
+        );
       } else {
-        logger.e("Error with status code: ${response.statusCode}");
+        _showResponseDialog(
+          // ignore: use_build_context_synchronously
+          context,
+          title: "Error",
+          message: "Server responded with status code ${response.statusCode}.",
+        );
       }
+      logger.i(jsonDecode(response.body));
     } catch (exception) {
       logger.e(exception);
+      _showResponseDialog(
+        // ignore: use_build_context_synchronously
+        context,
+        title: "⚠️ Exception",
+        message: exception.toString(),
+      );
     }
   }
 
@@ -107,29 +156,31 @@ class _EventInfosScreenState extends State<EventInfosScreen> {
         backgroundColor: Colors.deepPurple,
         foregroundColor: Colors.white,
       ),
-      drawer: CustomDrawer(screenName: "Event Infos"),
+      drawer: CustomDrawer(screenName: "Event Info"),
       body: RefreshIndicator(
         onRefresh: initUsage,
         child: ListView.separated(
           itemBuilder: (context, index) {
-            return ListTile(
-              title: Text(events[index].packageName!),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("Last time used: ${events[index].timeStamp}"),
-                  Text("Class name: ${events[index].className}"),
-                ],
-              ),
-              trailing: Text(events[index].eventType!),
-            );
+            return _eventsCount != 0
+                ? ListTile(
+                    title: Text(events[index].packageName!),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("Last time used: ${events[index].timeStamp}"),
+                        Text("Class name: ${events[index].className}"),
+                      ],
+                    ),
+                    trailing: Text(events[index].eventType!),
+                  )
+                : Center(child: Text("No data yet."));
           },
           separatorBuilder: (context, index) => Divider(),
-          itemCount: events.length,
+          itemCount: _eventsCount,
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => sendToAPI(),
+        onPressed: () => sendToAPI(context),
         child: Icon(Icons.send),
       ),
     );
