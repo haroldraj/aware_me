@@ -1,4 +1,5 @@
 import 'package:aware_me/screens/app_usage_screen.dart';
+import 'package:aware_me/screens/custom_usage_screen.dart';
 import 'package:aware_me/screens/event_infos_screen.dart';
 import 'package:flutter/material.dart';
 
@@ -12,7 +13,9 @@ class CustomDrawer extends StatefulWidget {
 
 class _CustomDrawerState extends State<CustomDrawer> {
   // ignore: constant_identifier_names
-  static const String APPUSAGE = "App Usage";
+  static const String APP_USAGE = "App Usage";
+  static const String CUSTOM_USAGE = "Custom Usage";
+  static const String EVENT_INFO = "Event Info";
 
   @override
   void initState() {
@@ -43,7 +46,10 @@ class _CustomDrawerState extends State<CustomDrawer> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            enabled: widget.screenName != APPUSAGE,
+            enabled: !(widget.screenName == APP_USAGE),
+            tileColor: widget.screenName == APP_USAGE
+                ? Colors.deepPurple[400]
+                : Colors.deepPurple,
             onTap: () {
               Navigator.of(context).pushReplacement(
                 MaterialPageRoute(builder: (context) => AppUsageScreen()),
@@ -59,10 +65,32 @@ class _CustomDrawerState extends State<CustomDrawer> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            enabled: widget.screenName == APPUSAGE,
+            enabled: !(widget.screenName == EVENT_INFO),
+            tileColor: widget.screenName == EVENT_INFO
+                ? Colors.deepPurple[400]
+                : Colors.deepPurple,
             onTap: () {
               Navigator.of(context).pushReplacement(
                 MaterialPageRoute(builder: (context) => EventInfosScreen()),
+              );
+            },
+          ),
+          ListTile(
+            leading: Icon(Icons.event, color: Colors.white),
+            title: Text(
+              "Custom Usage Screen",
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            enabled: !(widget.screenName == CUSTOM_USAGE),
+            tileColor: widget.screenName == CUSTOM_USAGE
+                ? Colors.deepPurple[400]
+                : Colors.deepPurple,
+            onTap: () {
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (context) => CustomUsageScreen()),
               );
             },
           ),
