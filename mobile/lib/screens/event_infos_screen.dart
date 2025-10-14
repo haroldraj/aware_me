@@ -2,21 +2,20 @@ import 'dart:convert';
 
 import 'package:aware_me/constants/constants.dart';
 import 'package:aware_me/screens/widgets/custom_drawer.dart';
+import 'package:aware_me/service/user_service.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:logger/logger.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:usage_stats/usage_stats.dart';
-import 'package:uuid/uuid.dart';
 
-class UsageStatsScreen extends StatefulWidget {
-  const UsageStatsScreen({super.key});
+class EventInfosScreen extends StatefulWidget {
+  const EventInfosScreen({super.key});
 
   @override
-  State<UsageStatsScreen> createState() => _UsageStatsScreenState();
+  State<EventInfosScreen> createState() => _EventInfosScreenState();
 }
 
-class _UsageStatsScreenState extends State<UsageStatsScreen> {
+class _EventInfosScreenState extends State<EventInfosScreen> {
   List<EventUsageInfo> events = [];
   Logger logger = Logger();
   int _eventsCount = 0;
@@ -29,8 +28,6 @@ class _UsageStatsScreenState extends State<UsageStatsScreen> {
 
   Future<void> initUsage() async {
     try {
-      UsageStats.grantUsagePermission();
-
       DateTime now = DateTime.now();
       DateTime startDate = DateTime(now.year, now.month, now.day, 0, 1);
 
@@ -38,7 +35,6 @@ class _UsageStatsScreenState extends State<UsageStatsScreen> {
         startDate,
         now,
       );
-
       List<EventUsageInfo> normalizedEvent = queryEvents.reversed.map((event) {
         return EventUsageInfo(
           eventType: event.eventType,
@@ -59,29 +55,15 @@ class _UsageStatsScreenState extends State<UsageStatsScreen> {
     }
   }
 
-  Future<String> getOrCreateUserId() async {
-    final prefs = await SharedPreferences.getInstance();
-    String? userId = prefs.getString("userId");
-    if (userId == null) {
-      setState(() {
-        userId = Uuid().v4();
-      });
-      prefs.setString("userId", userId!);
-    }
-    logger.w("UserId: $userId");
-    return userId!;
-  }
-
   Future<void> sendToAPI() async {
     try {
       var url = "${Url.base}/event_info";
-
-      String userId = await getOrCreateUserId();
+      String userId = await UserService().getUserId();
 
       final List<Map<String, dynamic>> eventInfoList = events
           .map(
             (event) => {
-              "userId": userId.toString(),
+              "userId": userId,
               "packageName": event.packageName,
               "eventType": event.eventType,
               "eventDate": event.timeStamp!,
@@ -95,7 +77,11 @@ class _UsageStatsScreenState extends State<UsageStatsScreen> {
         headers: {"Content-Type": "application/json; charset=UTF-8"},
         body: jsonEncode(eventInfoList),
       );
-      logger.i(jsonDecode(response.body));
+      if (response.statusCode == 200) {
+        logger.i(jsonDecode(response.body));
+      } else {
+        logger.e("Error with status code: ${response.statusCode}");
+      }
     } catch (exception) {
       logger.e(exception);
     }
@@ -121,7 +107,7 @@ class _UsageStatsScreenState extends State<UsageStatsScreen> {
         backgroundColor: Colors.deepPurple,
         foregroundColor: Colors.white,
       ),
-      drawer: CustomDrawer(),
+      drawer: CustomDrawer(screenName: "Event Infos"),
       body: RefreshIndicator(
         onRefresh: initUsage,
         child: ListView.separated(

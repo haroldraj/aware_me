@@ -3,11 +3,10 @@ import 'dart:convert';
 import 'package:app_usage/app_usage.dart';
 import 'package:aware_me/constants/constants.dart';
 import 'package:aware_me/screens/widgets/custom_drawer.dart';
+import 'package:aware_me/service/user_service.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:logger/logger.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:uuid/uuid.dart';
 
 class AppUsageScreen extends StatefulWidget {
   const AppUsageScreen({super.key});
@@ -21,19 +20,6 @@ class _AppUsageScreenState extends State<AppUsageScreen> {
   var logger = Logger();
   var selectedPage = '';
   int _infosCount = 0;
-
-  Future<String> getOrCreateUserId() async {
-    final prefs = await SharedPreferences.getInstance();
-    String? userId = prefs.getString("userId");
-    if (userId == null) {
-      setState(() {
-        userId = Uuid().v4();
-      });
-      prefs.setString("userId", userId!);
-    }
-    logger.w(userId);
-    return userId!;
-  }
 
   @override
   void initState() {
@@ -72,13 +58,11 @@ class _AppUsageScreenState extends State<AppUsageScreen> {
   Future<void> sendToAPI() async {
     try {
       var url = "${Url.base}/app_usage";
-
-      String userId = await getOrCreateUserId();
-
+      String userId = await UserService().getUserId();
       final List<Map<String, dynamic>> appUsageInfoList = _infos
           .map(
             (info) => {
-              "userId": userId.toString(),
+              "userId": userId,
               "packageName": info.packageName,
               "appName": info.appName,
               "usage": info.usage.inSeconds,
@@ -120,7 +104,7 @@ class _AppUsageScreenState extends State<AppUsageScreen> {
         backgroundColor: Colors.deepPurple,
         foregroundColor: Colors.white,
       ),
-      drawer: CustomDrawer(),
+      drawer: CustomDrawer(screenName: "App Usage",),
       body: RefreshIndicator(
         onRefresh: getUsageStats,
         child: ListView.separated(
