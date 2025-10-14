@@ -27,6 +27,30 @@ class EventInfoRequest(BaseModel):
     className: str
 
 
+class CustomUsageRequest(BaseModel):
+    userId: str
+    packageName: str
+    firstTimeStamp: datetime
+    lastTimeStamp: datetime
+    lastTimeUsed: datetime
+    totalTimeInForeground: int
+
+
+class CustomUsage(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    userId: str
+    packageName: str
+    firstTimeStamp: datetime
+    lastTimeStamp: datetime
+    lastTimeUsed: datetime
+    totalTimeInForeground: int
+
+    __table_args__ = (
+        UniqueConstraint("userId", "packageName", "firstTimeStamp", "lastTimeStamp",
+                         "lastTimeUsed", "totalTimeInForeground", name="unique_custom"),
+    )
+
+
 class EventInfo(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     userId: str
@@ -127,6 +151,33 @@ def event_data(eventInfoRequest: list[EventInfoRequest]):
 
     inserted = result.rowcount or 0
     duplicates = len(eventInfoRequest) - inserted
+
+    return {
+        "message": f"{inserted} new records inserted successfully.",
+        "duplicates_skipped": duplicates
+    }
+
+
+@app.post("/custom_usage")
+def custom_usage_Data(customUsageRequest: list[CustomUsageRequest]):
+    with Session(engine) as session:
+        stmt = insert(CustomUsage).values([
+            {
+                "userId": record.userId,
+                "packageName": record.packageName,
+                "firstTimeStamp": record.firstTimeStamp,
+                "lastTimeStamp": record.lastTimeStamp,
+                "lastTimeUsed": record.lastTimeUsed,
+                "totalTimeInForeground": record.totalTimeInForeground
+            } for record in customUsageRequest
+        ])
+        stmt = stmt.on_conflict_do_nothing(index_elements=["userId", "packageName", "firstTimeStamp", "lastTimeStamp",
+                                                           "lastTimeUsed", "totalTimeInForeground"])
+        result = session.exec(stmt)
+        session.commit()
+
+    inserted = result.rowcount or 0
+    duplicates = len(customUsageRequest) - inserted
 
     return {
         "message": f"{inserted} new records inserted successfully.",
