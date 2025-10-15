@@ -122,7 +122,7 @@ class _CustomUsageScreenState extends State<CustomUsageScreen> {
           context,
           title: "Data Sent",
           message:
-              "${data['message']}\n${data['duplicates_skipped']} existing records skipped.",
+              "${data['new_inserted']} new records inserted.\n${data['duplicates_skipped']} existing records skipped.",
         );
       } else {
         _showResponseDialog(

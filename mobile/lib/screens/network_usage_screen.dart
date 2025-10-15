@@ -122,8 +122,7 @@ class _NetworkUsageScreenState extends State<NetworkUsageScreen> {
           // ignore: use_build_context_synchronously
           context,
           title: "Data Sent",
-          message:
-              "${data['message']}\n${data['duplicates_skipped']} existing records skipped.",
+          message: "${data['new_inserted']} new records inserted/updated.",
         );
       } else {
         _showResponseDialog(
