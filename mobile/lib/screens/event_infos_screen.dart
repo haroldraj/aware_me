@@ -19,12 +19,12 @@ class _EventInfosScreenState extends State<EventInfosScreen> {
   List<EventUsageInfo> events = [];
   Logger logger = Logger();
   int _eventsCount = 0;
+  List<NetworkInfo> _netInfos = [];
 
   @override
   void initState() {
     super.initState();
     initUsage();
-    
   }
 
   Future<void> initUsage() async {
@@ -144,10 +144,7 @@ class _EventInfosScreenState extends State<EventInfosScreen> {
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              "Event Info",
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
+            Text("Event", style: const TextStyle(fontWeight: FontWeight.bold)),
             Text(
               "Count: $_eventsCount events",
               style: const TextStyle(fontWeight: FontWeight.bold),

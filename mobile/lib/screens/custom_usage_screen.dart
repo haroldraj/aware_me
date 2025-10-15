@@ -151,10 +151,7 @@ class _CustomUsageScreenState extends State<CustomUsageScreen> {
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              "Custom Usage",
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
+            Text("Custom", style: const TextStyle(fontWeight: FontWeight.bold)),
             Text(
               "Count: $_customUsageCount usages",
               style: const TextStyle(fontWeight: FontWeight.bold),
