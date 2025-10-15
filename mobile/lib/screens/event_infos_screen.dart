@@ -143,14 +143,21 @@ class _EventInfosScreenState extends State<EventInfosScreen> {
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text("Event", style: const TextStyle(fontWeight: FontWeight.bold)),
-            Text(
-              "Count: $_eventsCount events",
-              style: const TextStyle(fontWeight: FontWeight.bold),
+            Flexible(
+              child: Text(
+                "Event",
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            Flexible(
+              child: Text(
+                "Count: $_eventsCount events",
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
           ],
         ),
-        backgroundColor: Colors.deepPurple,
+        backgroundColor: CustomColors.bgColor,
         foregroundColor: Colors.white,
       ),
       drawer: CustomDrawer(screenName: "Event Info"),

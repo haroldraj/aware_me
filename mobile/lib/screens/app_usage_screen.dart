@@ -144,14 +144,21 @@ class _AppUsageScreenState extends State<AppUsageScreen> {
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text("App", style: const TextStyle(fontWeight: FontWeight.bold)),
-            Text(
-              "Count: $_infosCount apps",
-              style: const TextStyle(fontWeight: FontWeight.bold),
+            Flexible(
+              child: Text(
+                "App",
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            Flexible(
+              child: Text(
+                "Count: $_infosCount apps",
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
           ],
         ),
-        backgroundColor: Colors.deepPurple,
+        backgroundColor: CustomColors.bgColor,
         foregroundColor: Colors.white,
       ),
       drawer: CustomDrawer(screenName: "App Usage"),

@@ -1,3 +1,4 @@
+import 'package:aware_me/constants/constants.dart';
 import 'package:aware_me/screens/app_usage_screen.dart';
 import 'package:aware_me/screens/custom_usage_screen.dart';
 import 'package:aware_me/screens/event_infos_screen.dart';
@@ -30,17 +31,11 @@ class _CustomDrawerState extends State<CustomDrawer> {
   @override
   Widget build(BuildContext context) {
     return Drawer(
-      backgroundColor: Colors.deepPurple,
+      backgroundColor: CustomColors.bgColor,
       child: ListView(
         children: [
           DrawerHeader(
-            child: Text(
-              "Header",
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            child: Image(image: AssetImage("img/logo_aware_me_face.png")),
           ),
           ListTile(
             leading: Icon(Icons.data_usage_rounded, color: Colors.white),
@@ -53,8 +48,8 @@ class _CustomDrawerState extends State<CustomDrawer> {
             ),
             enabled: !(widget.screenName == APP_USAGE),
             tileColor: widget.screenName == APP_USAGE
-                ? Colors.deepPurple[400]
-                : Colors.deepPurple,
+                ? CustomColors.selectedColor
+                : CustomColors.bgColor,
             onTap: () {
               Navigator.of(context).pushReplacement(
                 MaterialPageRoute(builder: (context) => AppUsageScreen()),
@@ -72,8 +67,8 @@ class _CustomDrawerState extends State<CustomDrawer> {
             ),
             enabled: !(widget.screenName == EVENT_INFO),
             tileColor: widget.screenName == EVENT_INFO
-                ? Colors.deepPurple[400]
-                : Colors.deepPurple,
+                ? CustomColors.selectedColor
+                : CustomColors.bgColor,
             onTap: () {
               Navigator.of(context).pushReplacement(
                 MaterialPageRoute(builder: (context) => EventInfosScreen()),
@@ -91,8 +86,8 @@ class _CustomDrawerState extends State<CustomDrawer> {
             ),
             enabled: !(widget.screenName == CUSTOM_USAGE),
             tileColor: widget.screenName == CUSTOM_USAGE
-                ? Colors.deepPurple[400]
-                : Colors.deepPurple,
+                ? CustomColors.selectedColor
+                : CustomColors.bgColor,
             onTap: () {
               Navigator.of(context).pushReplacement(
                 MaterialPageRoute(builder: (context) => CustomUsageScreen()),
@@ -110,8 +105,8 @@ class _CustomDrawerState extends State<CustomDrawer> {
             ),
             enabled: !(widget.screenName == NETWORK_USAGE),
             tileColor: widget.screenName == NETWORK_USAGE
-                ? Colors.deepPurple[400]
-                : Colors.deepPurple,
+                ? CustomColors.selectedColor
+                : CustomColors.bgColor,
             onTap: () {
               Navigator.of(context).pushReplacement(
                 MaterialPageRoute(builder: (context) => NetworkUsageScreen()),

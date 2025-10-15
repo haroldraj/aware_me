@@ -151,17 +151,21 @@ class _NetworkUsageScreenState extends State<NetworkUsageScreen> {
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              "Network",
-              style: const TextStyle(fontWeight: FontWeight.bold),
+            Flexible(
+              child: Text(
+                "Network",
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
-            Text(
-              "Count: $_networksCount exchanges",
-              style: const TextStyle(fontWeight: FontWeight.bold),
+            Flexible(
+              child: Text(
+                "Count: $_networksCount exchanges",
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
           ],
         ),
-        backgroundColor: Colors.deepPurple,
+        backgroundColor: CustomColors.bgColor,
         foregroundColor: Colors.white,
       ),
       drawer: CustomDrawer(screenName: "Network Usage"),
