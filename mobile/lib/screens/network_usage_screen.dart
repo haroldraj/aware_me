@@ -8,17 +8,17 @@ import 'package:http/http.dart' as http;
 import 'package:logger/logger.dart';
 import 'package:usage_stats/usage_stats.dart';
 
-class EventInfosScreen extends StatefulWidget {
-  const EventInfosScreen({super.key});
+class NetworkUsageScreen extends StatefulWidget {
+  const NetworkUsageScreen({super.key});
 
   @override
-  State<EventInfosScreen> createState() => _EventInfosScreenState();
+  State<NetworkUsageScreen> createState() => _NetworkUsageScreenState();
 }
 
-class _EventInfosScreenState extends State<EventInfosScreen> {
-  List<EventUsageInfo> events = [];
+class _NetworkUsageScreenState extends State<NetworkUsageScreen> {
+  List<NetworkInfo> networkUsages = [];
   Logger logger = Logger();
-  int _eventsCount = 0;
+  int _networksCount = 0;
 
   @override
   void initState() {
@@ -31,24 +31,28 @@ class _EventInfosScreenState extends State<EventInfosScreen> {
       DateTime now = DateTime.now();
       DateTime startDate = DateTime(now.year, now.month, now.day, 0, 1);
 
-      List<EventUsageInfo> queryEvents = await UsageStats.queryEvents(
+      List<NetworkInfo> queryNetworks = await UsageStats.queryNetworkUsageStats(
         startDate,
         now,
       );
-      List<EventUsageInfo> normalizedEvent = queryEvents.reversed.map((event) {
-        return EventUsageInfo(
-          eventType: event.eventType,
-          packageName: event.packageName,
-          timeStamp: DateTime.fromMillisecondsSinceEpoch(
-            int.parse(event.timeStamp!),
-          ).toIso8601String(),
-          className: event.className,
-        );
-      }).toList();
+      List<NetworkInfo> normalizedNetwork = queryNetworks
+          .where(
+            (network) =>
+                (int.parse(network.rxTotalBytes ?? "0") > 0) ||
+                (int.parse(network.txTotalBytes ?? "0") > 0),
+          )
+          .map((network) {
+            return NetworkInfo(
+              packageName: network.packageName,
+              rxTotalBytes: network.rxTotalBytes,
+              txTotalBytes: network.txTotalBytes,
+            );
+          })
+          .toList();
 
       setState(() {
-        events = normalizedEvent;
-        _eventsCount = events.length;
+        networkUsages = normalizedNetwork;
+        _networksCount = networkUsages.length;
       });
     } catch (err) {
       logger.e(err);
@@ -87,17 +91,16 @@ class _EventInfosScreenState extends State<EventInfosScreen> {
 
   Future<void> sendToAPI(BuildContext context) async {
     try {
-      var url = "${Url.base}/event_info";
+      var url = "${Url.base}/network_usage";
       String userId = await UserService().getUserId();
 
-      final List<Map<String, dynamic>> eventInfoList = events
+      final List<Map<String, dynamic>> networkUsageList = networkUsages
           .map(
-            (event) => {
+            (network) => {
               "userId": userId,
-              "packageName": event.packageName,
-              "eventType": event.eventType,
-              "eventDate": event.timeStamp!,
-              "className": event.className.toString(),
+              "packageName": network.packageName,
+              "totalReceivedBytes": network.rxTotalBytes,
+              "totalTransferredBytes": network.txTotalBytes,
             },
           )
           .toList();
@@ -105,7 +108,7 @@ class _EventInfosScreenState extends State<EventInfosScreen> {
       var response = await http.post(
         Uri.parse(url),
         headers: {"Content-Type": "application/json; charset=UTF-8"},
-        body: jsonEncode(eventInfoList),
+        body: jsonEncode(networkUsageList),
       );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -143,9 +146,12 @@ class _EventInfosScreenState extends State<EventInfosScreen> {
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text("Event", style: const TextStyle(fontWeight: FontWeight.bold)),
             Text(
-              "Count: $_eventsCount events",
+              "Network",
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            Text(
+              "Count: $_networksCount exchanges",
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ],
@@ -153,27 +159,30 @@ class _EventInfosScreenState extends State<EventInfosScreen> {
         backgroundColor: Colors.deepPurple,
         foregroundColor: Colors.white,
       ),
-      drawer: CustomDrawer(screenName: "Event Info"),
+      drawer: CustomDrawer(screenName: "Network Usage"),
       body: RefreshIndicator(
         onRefresh: initUsage,
         child: ListView.separated(
           itemBuilder: (context, index) {
-            return _eventsCount != 0
+            return _networksCount != 0
                 ? ListTile(
-                    title: Text(events[index].packageName!),
+                    title: Text(networkUsages[index].packageName!),
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text("Last time used: ${events[index].timeStamp}"),
-                        Text("Class name: ${events[index].className}"),
+                        Text(
+                          "Total Received Bytes: ${networkUsages[index].rxTotalBytes}",
+                        ),
+                        Text(
+                          "Total Transferred Bytes: ${networkUsages[index].txTotalBytes}",
+                        ),
                       ],
                     ),
-                    trailing: Text(events[index].eventType!),
                   )
                 : Center(child: Text("No data yet."));
           },
           separatorBuilder: (context, index) => Divider(),
-          itemCount: _eventsCount,
+          itemCount: _networksCount,
         ),
       ),
       floatingActionButton: FloatingActionButton(

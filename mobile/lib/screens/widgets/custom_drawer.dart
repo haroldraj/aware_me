@@ -1,6 +1,7 @@
 import 'package:aware_me/screens/app_usage_screen.dart';
 import 'package:aware_me/screens/custom_usage_screen.dart';
 import 'package:aware_me/screens/event_infos_screen.dart';
+import 'package:aware_me/screens/network_usage_screen.dart';
 import 'package:flutter/material.dart';
 
 class CustomDrawer extends StatefulWidget {
@@ -14,8 +15,12 @@ class CustomDrawer extends StatefulWidget {
 class _CustomDrawerState extends State<CustomDrawer> {
   // ignore: constant_identifier_names
   static const String APP_USAGE = "App Usage";
+  // ignore: constant_identifier_names
   static const String CUSTOM_USAGE = "Custom Usage";
+  // ignore: constant_identifier_names
   static const String EVENT_INFO = "Event Info";
+  // ignore: constant_identifier_names
+  static const String NETWORK_USAGE = "Network Usage";
 
   @override
   void initState() {
@@ -91,6 +96,25 @@ class _CustomDrawerState extends State<CustomDrawer> {
             onTap: () {
               Navigator.of(context).pushReplacement(
                 MaterialPageRoute(builder: (context) => CustomUsageScreen()),
+              );
+            },
+          ),
+          ListTile(
+            leading: Icon(Icons.event, color: Colors.white),
+            title: Text(
+              "Network Usage Screen",
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            enabled: !(widget.screenName == NETWORK_USAGE),
+            tileColor: widget.screenName == NETWORK_USAGE
+                ? Colors.deepPurple[400]
+                : Colors.deepPurple,
+            onTap: () {
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (context) => NetworkUsageScreen()),
               );
             },
           ),
