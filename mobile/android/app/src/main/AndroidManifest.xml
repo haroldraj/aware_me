@@ -3,6 +3,7 @@
     package="com.hrajaona.aware_me">
     <uses-permission 
         android:name="android.permission.PACKAGE_USAGE_STATS"
+        android:name="android.permission.INTERNET"
         tools:ignore="ProtectedPermissions" />
     <application
         android:label="Aware Me"

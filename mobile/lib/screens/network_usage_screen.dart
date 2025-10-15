@@ -121,14 +121,14 @@ class _NetworkUsageScreenState extends State<NetworkUsageScreen> {
         _showResponseDialog(
           // ignore: use_build_context_synchronously
           context,
-          title: "Data Sent",
+          title: "✅ Success",
           message: "${data['new_inserted']} new records inserted/updated.",
         );
       } else {
         _showResponseDialog(
           // ignore: use_build_context_synchronously
           context,
-          title: "Error",
+          title: "❌ Error",
           message: "Server responded with status code ${response.statusCode}.",
         );
       }

@@ -112,7 +112,7 @@ class _EventInfosScreenState extends State<EventInfosScreen> {
         _showResponseDialog(
           // ignore: use_build_context_synchronously
           context,
-          title: "Data Sent",
+          title: "✅ Success",
           message:
               "${data['new_inserted']} new records inserted.\n${data['duplicates_skipped']} existing records skipped.",
         );
@@ -120,7 +120,7 @@ class _EventInfosScreenState extends State<EventInfosScreen> {
         _showResponseDialog(
           // ignore: use_build_context_synchronously
           context,
-          title: "Error",
+          title: "❌ Error",
           message: "Server responded with status code ${response.statusCode}.",
         );
       }
