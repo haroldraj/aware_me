@@ -81,7 +81,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
             },
           ),
           ListTile(
-            leading: Icon(Icons.event, color: Colors.white),
+            leading: Icon(Icons.people, color: Colors.white),
             title: Text(
               "Custom Usage Screen",
               style: TextStyle(
@@ -100,7 +100,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
             },
           ),
           ListTile(
-            leading: Icon(Icons.event, color: Colors.white),
+            leading: Icon(Icons.network_cell, color: Colors.white),
             title: Text(
               "Network Usage Screen",
               style: TextStyle(
