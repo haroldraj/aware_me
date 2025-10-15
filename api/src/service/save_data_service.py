@@ -5,6 +5,7 @@ from src.model.app_usage_model import AppUsage, AppUsageRequest
 from src.model.custom_usage_model import CustomUsage, CustomUsageRequest
 from src.model.event_info_model import EventInfo, EventInfoRequest
 from src.model.event_type_model import EventType
+from src.model.network_usage_model import NetworkUsage, NetworkUsageRequest
 from src.resource.event_type_data import EVENT_TYPE_DATA
 from src.resource.sql_engine import SQL_ENGINE_URL
 
@@ -56,7 +57,7 @@ class SaveDataService:
         duplicates = len(appusagerequest) - inserted
 
         return {
-            "message": f"{inserted} new records inserted successfully.",
+            "new_inserted": inserted,
             "duplicates_skipped": duplicates
         }
 
@@ -83,12 +84,12 @@ class SaveDataService:
         duplicates = len(eventInfoRequest) - inserted
 
         return {
-            "message": f"{inserted} new records inserted successfully.",
+            "new_inserted": inserted,
             "duplicates_skipped": duplicates
         }
 
     @staticmethod
-    def save_custom_usage_Data(customUsageRequest: list[CustomUsageRequest]):
+    def save_custom_usage_data(customUsageRequest: list[CustomUsageRequest]):
         with Session(engine) as session:
             query = insert(CustomUsage).values([
                 {
@@ -109,6 +110,32 @@ class SaveDataService:
         duplicates = len(customUsageRequest) - inserted
 
         return {
-            "message": f"{inserted} new records inserted successfully.",
+            "new_inserted": inserted,
             "duplicates_skipped": duplicates
+        }
+    
+    @staticmethod
+    def save_netork_usage_data(networkUsareRequest: list[NetworkUsageRequest]):
+        with Session(engine) as session:
+            query = insert(NetworkUsage).values([
+                {
+                    "userId": record.userId,
+                    "packageName": record.packageName,
+                    "totalReceivedBytes": record.totalReceivedBytes,
+                    "totalTransferredBytes": record.totalTransferredBytes,
+                    "startDate": record.startDate,
+                    "endDate": record.endDate
+                } for record in networkUsareRequest
+            ])
+            query = query.on_conflict_do_update(
+                index_elements=["userId", "packageName", "startDate"])
+            result = session.exec(query)
+            session.commit()
+
+        inserted = result.rowcount or 0
+        duplicates = len(networkUsareRequest) - inserted
+
+        return {
+            "new_inserted": inserted,
+            "duplicates_updated": duplicates
         }
