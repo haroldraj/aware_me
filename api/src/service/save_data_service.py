@@ -113,7 +113,7 @@ class SaveDataService:
             "new_inserted": inserted,
             "duplicates_skipped": duplicates
         }
-    
+
     @staticmethod
     def save_netork_usage_data(networkUsareRequest: list[NetworkUsageRequest]):
         with Session(engine) as session:
@@ -128,14 +128,17 @@ class SaveDataService:
                 } for record in networkUsareRequest
             ])
             query = query.on_conflict_do_update(
-                index_elements=["userId", "packageName", "startDate"])
+                index_elements=["userId", "packageName", "startDate"],
+                set_={
+                    "totalReceivedBytes": query.excluded.totalReceivedBytes,
+                    "totalTransferredBytes": query.excluded.totalTransferredBytes,
+                    "endDate": query.excluded.endDate,
+                })
             result = session.exec(query)
             session.commit()
 
         inserted = result.rowcount or 0
-        duplicates = len(networkUsareRequest) - inserted
 
         return {
             "new_inserted": inserted,
-            "duplicates_updated": duplicates
         }
