@@ -24,6 +24,7 @@ class _EventInfosScreenState extends State<EventInfosScreen> {
   void initState() {
     super.initState();
     initUsage();
+    
   }
 
   Future<void> initUsage() async {
