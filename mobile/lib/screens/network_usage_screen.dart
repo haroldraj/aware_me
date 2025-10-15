@@ -19,6 +19,8 @@ class _NetworkUsageScreenState extends State<NetworkUsageScreen> {
   List<NetworkInfo> networkUsages = [];
   Logger logger = Logger();
   int _networksCount = 0;
+  DateTime? _startDate;
+  DateTime? _endDate;
 
   @override
   void initState() {
@@ -53,6 +55,8 @@ class _NetworkUsageScreenState extends State<NetworkUsageScreen> {
       setState(() {
         networkUsages = normalizedNetwork;
         _networksCount = networkUsages.length;
+        _endDate = now;
+        _startDate = startDate;
       });
     } catch (err) {
       logger.e(err);
@@ -101,6 +105,8 @@ class _NetworkUsageScreenState extends State<NetworkUsageScreen> {
               "packageName": network.packageName,
               "totalReceivedBytes": network.rxTotalBytes,
               "totalTransferredBytes": network.txTotalBytes,
+              "startDate": _startDate!.toIso8601String(),
+              "endDate": _endDate!.toIso8601String(),
             },
           )
           .toList();
@@ -176,6 +182,8 @@ class _NetworkUsageScreenState extends State<NetworkUsageScreen> {
                         Text(
                           "Total Transferred Bytes: ${networkUsages[index].txTotalBytes}",
                         ),
+                        Text("Start Date: $_startDate"),
+                        Text("End Date: $_endDate"),
                       ],
                     ),
                   )
