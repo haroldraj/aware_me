@@ -43,6 +43,15 @@ The project strictly follows the principles of the **General Data Protection Reg
 
 ---
 
+## 📱 Screens
+
+![Drawer](img/screen/drawer.jpg)
+![Event](img/screen/event.jpg)
+![Network](img/screen/network.jpg)
+![Privacy](img/screen/privacy.jpg)
+
+---
+
 ## ⚙️ Technology Stack (Brief Overview)
 
 Although AwareMe focuses on human impact rather than pure engineering, a modern and reliable stack was selected to ensure scalability, flexibility, and future research use.
