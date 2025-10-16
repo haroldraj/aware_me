@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:logger/logger.dart';
 import 'package:usage_stats/usage_stats.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class NetworkUsageScreen extends StatefulWidget {
   const NetworkUsageScreen({super.key});
@@ -19,6 +20,7 @@ class _NetworkUsageScreenState extends State<NetworkUsageScreen> {
   List<NetworkInfo> networkUsages = [];
   Logger logger = Logger();
   int _networksCount = 0;
+  final String apiKey = dotenv.env["API_KEY"]!;
   DateTime? _startDate;
   DateTime? _endDate;
 
@@ -110,29 +112,41 @@ class _NetworkUsageScreenState extends State<NetworkUsageScreen> {
             },
           )
           .toList();
-
-      var response = await http.post(
-        Uri.parse(url),
-        headers: {"Content-Type": "application/json; charset=UTF-8"},
-        body: jsonEncode(networkUsageList),
-      );
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        _showResponseDialog(
-          // ignore: use_build_context_synchronously
-          context,
-          title: "✅ Success",
-          message: "${data['new_inserted']} new records inserted/updated.",
+      if (_networksCount > 0) {
+        var response = await http.post(
+          Uri.parse(url),
+          headers: {
+            "Content-Type": "application/json; charset=UTF-8",
+            "api-key": apiKey,
+          },
+          body: jsonEncode(networkUsageList),
         );
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          _showResponseDialog(
+            // ignore: use_build_context_synchronously
+            context,
+            title: "✅ Success",
+            message: "${data['new_inserted']} new records inserted/updated.",
+          );
+        } else {
+          _showResponseDialog(
+            // ignore: use_build_context_synchronously
+            context,
+            title: "❌ Error",
+            message:
+                "Server responded with status code ${response.statusCode}.",
+          );
+        }
+        logger.i(jsonDecode(response.body));
       } else {
         _showResponseDialog(
           // ignore: use_build_context_synchronously
           context,
           title: "❌ Error",
-          message: "Server responded with status code ${response.statusCode}.",
+          message: "No data to send.",
         );
       }
-      logger.i(jsonDecode(response.body));
     } catch (exception) {
       logger.e(exception);
       _showResponseDialog(
