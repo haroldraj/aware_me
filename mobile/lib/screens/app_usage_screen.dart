@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:app_usage/app_usage.dart';
 import 'package:aware_me/constants/constants.dart';
+import 'package:aware_me/screens/widgets/custom_alert_dialog.dart';
 import 'package:aware_me/screens/widgets/custom_drawer.dart';
 import 'package:aware_me/service/user_service.dart';
 import 'package:flutter/material.dart';
@@ -27,36 +28,6 @@ class _AppUsageScreenState extends State<AppUsageScreen> {
   void initState() {
     super.initState();
     getUsageStats();
-  }
-
-  void _showResponseDialog(
-    BuildContext context, {
-    required String title,
-    required String message,
-  }) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          title: Text(
-            title,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          content: Text(message),
-
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text("OK"),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   Future<void> getUsageStats() async {
@@ -105,6 +76,13 @@ class _AppUsageScreenState extends State<AppUsageScreen> {
           )
           .toList();
       if (_infosCount > 0) {
+        CustomAlertDialog.showResponseDialog(
+          // ignore: use_build_context_synchronously
+          context,
+          title: "⏳ Sending data",
+          message: "",
+          isSendingData: true,
+        );
         var response = await http.post(
           Uri.parse(url),
           headers: {
@@ -113,9 +91,11 @@ class _AppUsageScreenState extends State<AppUsageScreen> {
           },
           body: jsonEncode(appUsageInfoList),
         );
+        // ignore: use_build_context_synchronously
+        Navigator.of(context).pop();
         if (response.statusCode == 200) {
           final data = jsonDecode(response.body);
-          _showResponseDialog(
+          CustomAlertDialog.showResponseDialog(
             // ignore: use_build_context_synchronously
             context,
             title: "✅ Success",
@@ -123,7 +103,7 @@ class _AppUsageScreenState extends State<AppUsageScreen> {
                 "${data['new_inserted']} new records inserted.\n${data['duplicates_skipped']} existing records skipped.",
           );
         } else {
-          _showResponseDialog(
+          CustomAlertDialog.showResponseDialog(
             // ignore: use_build_context_synchronously
             context,
             title: "❌ Error",
@@ -133,7 +113,7 @@ class _AppUsageScreenState extends State<AppUsageScreen> {
         }
         logger.i(jsonDecode(response.body));
       } else {
-        _showResponseDialog(
+        CustomAlertDialog.showResponseDialog(
           // ignore: use_build_context_synchronously
           context,
           title: "❌ Error",
@@ -142,7 +122,7 @@ class _AppUsageScreenState extends State<AppUsageScreen> {
       }
     } catch (exception) {
       logger.e(exception);
-      _showResponseDialog(
+      CustomAlertDialog.showResponseDialog(
         // ignore: use_build_context_synchronously
         context,
         title: "⚠️ Exception",
@@ -166,7 +146,7 @@ class _AppUsageScreenState extends State<AppUsageScreen> {
             ),
             Flexible(
               child: Text(
-                "Count: $_infosCount apps",
+                "Count: $_infosCount",
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             ),
@@ -178,23 +158,33 @@ class _AppUsageScreenState extends State<AppUsageScreen> {
       drawer: CustomDrawer(screenName: "App Usage"),
       body: RefreshIndicator(
         onRefresh: getUsageStats,
-        child: ListView.separated(
-          itemCount: _infosCount,
-          itemBuilder: (context, index) {
-            return _infosCount != 0
-                ? ListTile(
-                    title: Text(_infos[index].packageName),
-                    subtitle: Text(_infos[index].appName),
-                    trailing: Text(_infos[index].usage.toString()),
-                  )
-                : Center(child: Text("No data yet."));
-          },
-          separatorBuilder: (context, index) => Divider(),
+        child: Scrollbar(
+          child: ListView.separated(
+            itemCount: _infosCount,
+            itemBuilder: (context, index) {
+              return _infosCount != 0
+                  ? ListTile(
+                      title: Text(_infos[index].packageName),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Total Time Used (h:m:s): ${_infos[index].usage.toString()}",
+                          ),
+                        ],
+                      ),
+                    )
+                  : Center(child: Text("No data yet."));
+            },
+            separatorBuilder: (context, index) => Divider(),
+          ),
         ),
       ),
       floatingActionButton: FloatingActionButton(
+        tooltip: "Send data to DB",
+        backgroundColor: CustomColors.bgColor,
         onPressed: () => sendToAPI(context),
-        child: Icon(Icons.send),
+        child: Icon(Icons.send, color: Colors.white),
       ),
     );
   }

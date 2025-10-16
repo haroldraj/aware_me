@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:aware_me/constants/constants.dart';
+import 'package:aware_me/screens/widgets/custom_alert_dialog.dart';
 import 'package:aware_me/screens/widgets/custom_drawer.dart';
 import 'package:aware_me/service/user_service.dart';
 import 'package:flutter/material.dart';
@@ -65,36 +66,6 @@ class _NetworkUsageScreenState extends State<NetworkUsageScreen> {
     }
   }
 
-  void _showResponseDialog(
-    BuildContext context, {
-    required String title,
-    required String message,
-  }) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          title: Text(
-            title,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          content: Text(message),
-
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text("OK"),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   Future<void> sendToAPI(BuildContext context) async {
     try {
       var url = "${Url.base}/network_usage";
@@ -113,6 +84,13 @@ class _NetworkUsageScreenState extends State<NetworkUsageScreen> {
           )
           .toList();
       if (_networksCount > 0) {
+        CustomAlertDialog.showResponseDialog(
+          // ignore: use_build_context_synchronously
+          context,
+          title: "⏳ Sending data",
+          message: "",
+          isSendingData: true,
+        );
         var response = await http.post(
           Uri.parse(url),
           headers: {
@@ -121,16 +99,18 @@ class _NetworkUsageScreenState extends State<NetworkUsageScreen> {
           },
           body: jsonEncode(networkUsageList),
         );
+        // ignore: use_build_context_synchronously
+        Navigator.of(context).pop();
         if (response.statusCode == 200) {
           final data = jsonDecode(response.body);
-          _showResponseDialog(
+          CustomAlertDialog.showResponseDialog(
             // ignore: use_build_context_synchronously
             context,
             title: "✅ Success",
             message: "${data['new_inserted']} new records inserted/updated.",
           );
         } else {
-          _showResponseDialog(
+          CustomAlertDialog.showResponseDialog(
             // ignore: use_build_context_synchronously
             context,
             title: "❌ Error",
@@ -140,7 +120,7 @@ class _NetworkUsageScreenState extends State<NetworkUsageScreen> {
         }
         logger.i(jsonDecode(response.body));
       } else {
-        _showResponseDialog(
+        CustomAlertDialog.showResponseDialog(
           // ignore: use_build_context_synchronously
           context,
           title: "❌ Error",
@@ -149,7 +129,7 @@ class _NetworkUsageScreenState extends State<NetworkUsageScreen> {
       }
     } catch (exception) {
       logger.e(exception);
-      _showResponseDialog(
+      CustomAlertDialog.showResponseDialog(
         // ignore: use_build_context_synchronously
         context,
         title: "⚠️ Exception",
@@ -173,7 +153,7 @@ class _NetworkUsageScreenState extends State<NetworkUsageScreen> {
             ),
             Flexible(
               child: Text(
-                "Count: $_networksCount exchanges",
+                "Count: $_networksCount",
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             ),
@@ -185,34 +165,38 @@ class _NetworkUsageScreenState extends State<NetworkUsageScreen> {
       drawer: CustomDrawer(screenName: "Network Usage"),
       body: RefreshIndicator(
         onRefresh: initUsage,
-        child: ListView.separated(
-          itemBuilder: (context, index) {
-            return _networksCount != 0
-                ? ListTile(
-                    title: Text(networkUsages[index].packageName!),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Total Received Bytes: ${networkUsages[index].rxTotalBytes}",
-                        ),
-                        Text(
-                          "Total Transferred Bytes: ${networkUsages[index].txTotalBytes}",
-                        ),
-                        Text("Start Date: $_startDate"),
-                        Text("End Date: $_endDate"),
-                      ],
-                    ),
-                  )
-                : Center(child: Text("No data yet."));
-          },
-          separatorBuilder: (context, index) => Divider(),
-          itemCount: _networksCount,
+        child: Scrollbar(
+          child: ListView.separated(
+            itemBuilder: (context, index) {
+              return _networksCount != 0
+                  ? ListTile(
+                      title: Text(networkUsages[index].packageName!),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Total Received Bytes: ${networkUsages[index].rxTotalBytes}",
+                          ),
+                          Text(
+                            "Total Transferred Bytes: ${networkUsages[index].txTotalBytes}",
+                          ),
+                          Text("Start Date: $_startDate"),
+                          Text("End Date: $_endDate"),
+                        ],
+                      ),
+                    )
+                  : Center(child: Text("No data yet."));
+            },
+            separatorBuilder: (context, index) => Divider(),
+            itemCount: _networksCount,
+          ),
         ),
       ),
       floatingActionButton: FloatingActionButton(
+        tooltip: "Send data to DB",
+        backgroundColor: CustomColors.bgColor,
         onPressed: () => sendToAPI(context),
-        child: Icon(Icons.send),
+        child: Icon(Icons.send, color: Colors.white),
       ),
     );
   }

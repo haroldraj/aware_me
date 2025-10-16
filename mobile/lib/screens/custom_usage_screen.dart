@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:aware_me/constants/constants.dart';
+import 'package:aware_me/screens/widgets/custom_alert_dialog.dart';
 import 'package:aware_me/screens/widgets/custom_drawer.dart';
 import 'package:aware_me/service/user_service.dart';
 import 'package:flutter/material.dart';
@@ -37,7 +38,7 @@ class _CustomUsageScreenState extends State<CustomUsageScreen> {
         startDate,
         now,
       );
-      List<UsageInfo> normalizedUsage = queryUsage
+      List<UsageInfo> normalizedUsage = queryUsage.reversed
           .where((usage) => int.parse(usage.totalTimeInForeground ?? "0") > 0)
           .map((usage) {
             return UsageInfo(
@@ -64,36 +65,6 @@ class _CustomUsageScreenState extends State<CustomUsageScreen> {
     }
   }
 
-  void _showResponseDialog(
-    BuildContext context, {
-    required String title,
-    required String message,
-  }) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          title: Text(
-            title,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          content: Text(message),
-
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text("OK"),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   Future<void> sendToAPI(BuildContext context) async {
     try {
       var url = "${Url.base}/custom_usage";
@@ -112,6 +83,13 @@ class _CustomUsageScreenState extends State<CustomUsageScreen> {
           )
           .toList();
       if (_customUsageCount > 0) {
+        CustomAlertDialog.showResponseDialog(
+          // ignore: use_build_context_synchronously
+          context,
+          title: "⏳ Sending data",
+          message: "",
+          isSendingData: true,
+        );
         var response = await http.post(
           Uri.parse(url),
           headers: {
@@ -120,9 +98,11 @@ class _CustomUsageScreenState extends State<CustomUsageScreen> {
           },
           body: jsonEncode(customUsageRequest),
         );
+        // ignore: use_build_context_synchronously
+        Navigator.of(context).pop();
         if (response.statusCode == 200) {
           final data = jsonDecode(response.body);
-          _showResponseDialog(
+          CustomAlertDialog.showResponseDialog(
             // ignore: use_build_context_synchronously
             context,
             title: "✅ Success",
@@ -130,7 +110,7 @@ class _CustomUsageScreenState extends State<CustomUsageScreen> {
                 "${data['new_inserted']} new records inserted.\n${data['duplicates_skipped']} existing records skipped.",
           );
         } else {
-          _showResponseDialog(
+          CustomAlertDialog.showResponseDialog(
             // ignore: use_build_context_synchronously
             context,
             title: "❌ Error",
@@ -140,7 +120,7 @@ class _CustomUsageScreenState extends State<CustomUsageScreen> {
         }
         _logger.i(jsonDecode(response.body));
       } else {
-        _showResponseDialog(
+        CustomAlertDialog.showResponseDialog(
           // ignore: use_build_context_synchronously
           context,
           title: "❌ Error",
@@ -149,7 +129,7 @@ class _CustomUsageScreenState extends State<CustomUsageScreen> {
       }
     } catch (exception) {
       _logger.e(exception);
-      _showResponseDialog(
+      CustomAlertDialog.showResponseDialog(
         // ignore: use_build_context_synchronously
         context,
         title: "⚠️ Exception",
@@ -173,7 +153,7 @@ class _CustomUsageScreenState extends State<CustomUsageScreen> {
             ),
             Flexible(
               child: Text(
-                "Count: $_customUsageCount usages",
+                "Count: $_customUsageCount",
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             ),
@@ -185,38 +165,42 @@ class _CustomUsageScreenState extends State<CustomUsageScreen> {
       drawer: CustomDrawer(screenName: "Custom Usage"),
       body: RefreshIndicator(
         onRefresh: initUsage,
-        child: ListView.separated(
-          separatorBuilder: (context, index) => Divider(),
-          itemCount: _customUsageCount,
-          itemBuilder: (context, index) {
-            return _customUsageCount != 0
-                ? ListTile(
-                    title: Text(customUsage[index].packageName!),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "FirstTimeStamp: ${customUsage[index].firstTimeStamp}",
-                        ),
-                        Text(
-                          "LastTimeStamp: ${customUsage[index].lastTimeStamp}",
-                        ),
-                        Text(
-                          "TotalTimeInForeground: ${customUsage[index].totalTimeInForeground}",
-                        ),
-                        Text(
-                          "LastTimeUsed: ${customUsage[index].lastTimeUsed}",
-                        ),
-                      ],
-                    ),
-                  )
-                : Center(child: Text("No data yet."));
-          },
+        child: Scrollbar(
+          child: ListView.separated(
+            separatorBuilder: (context, index) => Divider(),
+            itemCount: _customUsageCount,
+            itemBuilder: (context, index) {
+              return _customUsageCount != 0
+                  ? ListTile(
+                      title: Text(customUsage[index].packageName!),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "FirstTimeStamp: ${customUsage[index].firstTimeStamp}",
+                          ),
+                          Text(
+                            "LastTimeStamp: ${customUsage[index].lastTimeStamp}",
+                          ),
+                          Text(
+                            "TotalTimeInForeground: ${customUsage[index].totalTimeInForeground}",
+                          ),
+                          Text(
+                            "LastTimeUsed: ${customUsage[index].lastTimeUsed}",
+                          ),
+                        ],
+                      ),
+                    )
+                  : Center(child: Text("No data yet."));
+            },
+          ),
         ),
       ),
       floatingActionButton: FloatingActionButton(
+        tooltip: "Send data to DB",
+        backgroundColor: CustomColors.bgColor,
         onPressed: () => sendToAPI(context),
-        child: Icon(Icons.send),
+        child: Icon(Icons.send, color: Colors.white),
       ),
     );
   }

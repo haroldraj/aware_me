@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:aware_me/constants/constants.dart';
+import 'package:aware_me/screens/widgets/custom_alert_dialog.dart';
 import 'package:aware_me/screens/widgets/custom_drawer.dart';
 import 'package:aware_me/service/user_service.dart';
 import 'package:flutter/material.dart';
@@ -57,36 +58,6 @@ class _EventInfosScreenState extends State<EventInfosScreen> {
     }
   }
 
-  void _showResponseDialog(
-    BuildContext context, {
-    required String title,
-    required String message,
-  }) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          title: Text(
-            title,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          content: Text(message),
-
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text("OK"),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   Future<void> sendToAPI(BuildContext context) async {
     try {
       var url = "${Url.base}/event_info";
@@ -104,6 +75,13 @@ class _EventInfosScreenState extends State<EventInfosScreen> {
           )
           .toList();
       if (_eventsCount > 0) {
+        CustomAlertDialog.showResponseDialog(
+          // ignore: use_build_context_synchronously
+          context,
+          title: "⏳ Sending data",
+          message: "",
+          isSendingData: true,
+        );
         var response = await http.post(
           Uri.parse(url),
           headers: {
@@ -112,9 +90,11 @@ class _EventInfosScreenState extends State<EventInfosScreen> {
           },
           body: jsonEncode(eventInfoList),
         );
+        // ignore: use_build_context_synchronously
+        Navigator.of(context).pop();
         if (response.statusCode == 200) {
           final data = jsonDecode(response.body);
-          _showResponseDialog(
+          CustomAlertDialog.showResponseDialog(
             // ignore: use_build_context_synchronously
             context,
             title: "✅ Success",
@@ -122,7 +102,7 @@ class _EventInfosScreenState extends State<EventInfosScreen> {
                 "${data['new_inserted']} new records inserted.\n${data['duplicates_skipped']} existing records skipped.",
           );
         } else {
-          _showResponseDialog(
+          CustomAlertDialog.showResponseDialog(
             // ignore: use_build_context_synchronously
             context,
             title: "❌ Error",
@@ -132,7 +112,7 @@ class _EventInfosScreenState extends State<EventInfosScreen> {
         }
         logger.i(jsonDecode(response.body));
       } else {
-        _showResponseDialog(
+        CustomAlertDialog.showResponseDialog(
           // ignore: use_build_context_synchronously
           context,
           title: "❌ Error",
@@ -141,7 +121,7 @@ class _EventInfosScreenState extends State<EventInfosScreen> {
       }
     } catch (exception) {
       logger.e(exception);
-      _showResponseDialog(
+      CustomAlertDialog.showResponseDialog(
         // ignore: use_build_context_synchronously
         context,
         title: "⚠️ Exception",
@@ -165,7 +145,7 @@ class _EventInfosScreenState extends State<EventInfosScreen> {
             ),
             Flexible(
               child: Text(
-                "Count: $_eventsCount events",
+                "Count: $_eventsCount",
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             ),
@@ -177,29 +157,33 @@ class _EventInfosScreenState extends State<EventInfosScreen> {
       drawer: CustomDrawer(screenName: "Event Info"),
       body: RefreshIndicator(
         onRefresh: initUsage,
-        child: ListView.separated(
-          itemBuilder: (context, index) {
-            return _eventsCount != 0
-                ? ListTile(
-                    title: Text(events[index].packageName!),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text("Last time used: ${events[index].timeStamp}"),
-                        Text("Class name: ${events[index].className}"),
-                      ],
-                    ),
-                    trailing: Text(events[index].eventType!),
-                  )
-                : Center(child: Text("No data yet."));
-          },
-          separatorBuilder: (context, index) => Divider(),
-          itemCount: _eventsCount,
+        child: Scrollbar(
+          child: ListView.separated(
+            itemBuilder: (context, index) {
+              return _eventsCount != 0
+                  ? ListTile(
+                      title: Text(events[index].packageName!),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text("Last time used: ${events[index].timeStamp}"),
+                          Text("Class name: ${events[index].className}"),
+                        ],
+                      ),
+                      trailing: Text(events[index].eventType!),
+                    )
+                  : Center(child: Text("No data yet."));
+            },
+            separatorBuilder: (context, index) => Divider(),
+            itemCount: _eventsCount,
+          ),
         ),
       ),
       floatingActionButton: FloatingActionButton(
+        tooltip: "Send data to DB",
+        backgroundColor: CustomColors.bgColor,
         onPressed: () => sendToAPI(context),
-        child: Icon(Icons.send),
+        child: Icon(Icons.send, color: Colors.white),
       ),
     );
   }

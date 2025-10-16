@@ -23,6 +23,7 @@ class AppUsage(SQLModel, table=True):
     startDate: datetime
     endDate: datetime
     lastForegroundDate: datetime
+#    createdAt: Optional[datetime] = Field(default=datetime.now)
 
     __table_args__ = (
         UniqueConstraint("userId", "packageName", "startDate",
