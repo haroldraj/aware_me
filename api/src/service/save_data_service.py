@@ -1,4 +1,5 @@
 
+import os
 from sqlmodel import SQLModel, Session, create_engine
 from sqlalchemy.dialects.postgresql import insert
 from src.model.app_usage_model import AppUsage, AppUsageRequest
@@ -7,9 +8,13 @@ from src.model.event_info_model import EventInfo, EventInfoRequest
 from src.model.event_type_model import EventType
 from src.model.network_usage_model import NetworkUsage, NetworkUsageRequest
 from src.resource.event_type_data import EVENT_TYPE_DATA
-from src.resource.sql_engine import SQL_ENGINE_URL
+from dotenv import load_dotenv
 
-engine = create_engine(SQL_ENGINE_URL)
+load_dotenv()
+
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+engine = create_engine(DATABASE_URL)
 
 SQLModel.metadata.create_all(engine)
 
