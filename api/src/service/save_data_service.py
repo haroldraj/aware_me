@@ -2,6 +2,7 @@
 import os
 from sqlmodel import SQLModel, Session, create_engine
 from sqlalchemy.dialects.postgresql import insert
+from src.model.all_usage_data_model import AllUsageDataRequest
 from src.model.app_usage_model import AppUsage, AppUsageRequest
 from src.model.custom_usage_model import CustomUsage, CustomUsageRequest
 from src.model.event_info_model import EventInfo, EventInfoRequest
@@ -146,4 +147,19 @@ class SaveDataService:
 
         return {
             "new_inserted": inserted,
+        }
+
+    @staticmethod
+    def save_all_usage_data(allUsageRequest: AllUsageDataRequest):
+        event_result = SaveDataService.save_event_data(
+            allUsageRequest.eventInfoRequestList)
+        custom_result = SaveDataService.save_custom_usage_data(
+            allUsageRequest.customUsageRequestList)
+        network_result = SaveDataService.save_netork_usage_data(
+            allUsageRequest.networkUsageRequestList)
+
+        return {
+            "event": event_result,
+            "custom": custom_result,
+            "network": network_result
         }

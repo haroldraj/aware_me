@@ -1,6 +1,7 @@
 
 from fastapi import FastAPI, HTTPException, Depends, Header
 import os
+from src.model.all_usage_data_model import AllUsageDataRequest
 from src.model.app_usage_model import AppUsageRequest
 from src.model.custom_usage_model import CustomUsageRequest
 from src.model.event_info_model import EventInfoRequest
@@ -51,3 +52,8 @@ def save_custom_usage_data(customUsageRequest: list[CustomUsageRequest], _: None
 @app.post("/network_usage")
 def save_network_usage_data(networkUsageRequest: list[NetworkUsageRequest], _: None = Depends(verify_api_key)):
     return SaveDataService.save_netork_usage_data(networkUsageRequest)
+
+
+@app.post("/all_usage")
+def save_alle_usage_data(allUsageRequest: AllUsageDataRequest, _: None = Depends(verify_api_key)):
+    return SaveDataService.save_all_usage_data(allUsageRequest)
