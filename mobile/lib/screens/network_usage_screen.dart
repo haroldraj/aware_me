@@ -1,14 +1,11 @@
-import 'dart:convert';
-
 import 'package:aware_me/constants/constants.dart';
-import 'package:aware_me/screens/widgets/custom_alert_dialog.dart';
+import 'package:aware_me/constants/enums.dart';
+import 'package:aware_me/models/network_usage_request.dart';
 import 'package:aware_me/screens/widgets/custom_drawer.dart';
-import 'package:aware_me/service/user_service.dart';
+import 'package:aware_me/service/network_usage_service.dart';
+import 'package:aware_me/utils/data_sender.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:logger/logger.dart';
-import 'package:usage_stats/usage_stats.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class NetworkUsageScreen extends StatefulWidget {
   const NetworkUsageScreen({super.key});
@@ -18,12 +15,10 @@ class NetworkUsageScreen extends StatefulWidget {
 }
 
 class _NetworkUsageScreenState extends State<NetworkUsageScreen> {
-  List<NetworkInfo> networkUsages = [];
+  List<NetworkUsageRequest> networkUsages = [];
   Logger logger = Logger();
-  int _networksCount = 0;
-  final String apiKey = dotenv.env["API_KEY"]!;
-  DateTime? _startDate;
-  DateTime? _endDate;
+  final String _endpoint = "/network_usage";
+  final NetworkUsageService _networkUsageService = NetworkUsageService();
 
   @override
   void initState() {
@@ -33,33 +28,11 @@ class _NetworkUsageScreenState extends State<NetworkUsageScreen> {
 
   Future<void> initUsage() async {
     try {
-      DateTime now = DateTime.now();
-      DateTime startDate = DateTime(now.year, now.month, now.day, 0, 1);
-
-      List<NetworkInfo> queryNetworks = await UsageStats.queryNetworkUsageStats(
-        startDate,
-        now,
-      );
-      List<NetworkInfo> normalizedNetwork = queryNetworks
-          .where(
-            (network) =>
-                (int.parse(network.rxTotalBytes ?? "0") > 0) ||
-                (int.parse(network.txTotalBytes ?? "0") > 0),
-          )
-          .map((network) {
-            return NetworkInfo(
-              packageName: network.packageName,
-              rxTotalBytes: network.rxTotalBytes,
-              txTotalBytes: network.txTotalBytes,
-            );
-          })
-          .toList();
+      List<NetworkUsageRequest> normalizedNetwork = await _networkUsageService
+          .queryNetworkUsage();
 
       setState(() {
         networkUsages = normalizedNetwork;
-        _networksCount = networkUsages.length;
-        _endDate = now;
-        _startDate = startDate;
       });
     } catch (err) {
       logger.e(err);
@@ -67,75 +40,9 @@ class _NetworkUsageScreenState extends State<NetworkUsageScreen> {
   }
 
   Future<void> sendToAPI(BuildContext context) async {
-    try {
-      var url = "${Url.base}/network_usage";
-      String userId = await UserService().getUserId();
-
-      final List<Map<String, dynamic>> networkUsageList = networkUsages
-          .map(
-            (network) => {
-              "userId": userId,
-              "packageName": network.packageName,
-              "totalReceivedBytes": network.rxTotalBytes,
-              "totalTransferredBytes": network.txTotalBytes,
-              "startDate": _startDate!.toIso8601String(),
-              "endDate": _endDate!.toIso8601String(),
-            },
-          )
-          .toList();
-      if (_networksCount > 0) {
-        CustomAlertDialog.showResponseDialog(
-          // ignore: use_build_context_synchronously
-          context,
-          title: "⏳ Sending data",
-          message: "",
-          isSendingData: true,
-        );
-        var response = await http.post(
-          Uri.parse(url),
-          headers: {
-            "Content-Type": "application/json; charset=UTF-8",
-            "api-key": apiKey,
-          },
-          body: jsonEncode(networkUsageList),
-        );
-        // ignore: use_build_context_synchronously
-        Navigator.of(context).pop();
-        if (response.statusCode == 200) {
-          final data = jsonDecode(response.body);
-          CustomAlertDialog.showResponseDialog(
-            // ignore: use_build_context_synchronously
-            context,
-            title: "✅ Success",
-            message: "${data['new_inserted']} new records inserted/updated.",
-          );
-        } else {
-          CustomAlertDialog.showResponseDialog(
-            // ignore: use_build_context_synchronously
-            context,
-            title: "❌ Error",
-            message:
-                "Server responded with status code ${response.statusCode}.",
-          );
-        }
-        logger.i(jsonDecode(response.body));
-      } else {
-        CustomAlertDialog.showResponseDialog(
-          // ignore: use_build_context_synchronously
-          context,
-          title: "❌ Error",
-          message: "No data to send.",
-        );
-      }
-    } catch (exception) {
-      logger.e(exception);
-      CustomAlertDialog.showResponseDialog(
-        // ignore: use_build_context_synchronously
-        context,
-        title: "⚠️ Exception",
-        message: exception.toString(),
-      );
-    }
+    final networkJsonList = _networkUsageService.toJson(networkUsages);
+    // ignore: use_build_context_synchronously
+    DataSender.sendData(context, _endpoint, networkJsonList, isNetowrk: true);
   }
 
   @override
@@ -153,7 +60,7 @@ class _NetworkUsageScreenState extends State<NetworkUsageScreen> {
             ),
             Flexible(
               child: Text(
-                "Count: $_networksCount",
+                "Count: ${networkUsages.length}",
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             ),
@@ -162,33 +69,33 @@ class _NetworkUsageScreenState extends State<NetworkUsageScreen> {
         backgroundColor: CustomColors.bgColor,
         foregroundColor: Colors.white,
       ),
-      drawer: CustomDrawer(screenName: "Network Usage"),
+      drawer: CustomDrawer(screenName: ScreenName.networkUsage),
       body: RefreshIndicator(
         onRefresh: initUsage,
         child: Scrollbar(
           child: ListView.separated(
             itemBuilder: (context, index) {
-              return _networksCount != 0
+              return networkUsages.isNotEmpty
                   ? ListTile(
-                      title: Text(networkUsages[index].packageName!),
+                      title: Text(networkUsages[index].packageName),
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            "Total Received Bytes: ${networkUsages[index].rxTotalBytes}",
+                            "Total Received Bytes: ${networkUsages[index].totalReceivedBytes}",
                           ),
                           Text(
-                            "Total Transferred Bytes: ${networkUsages[index].txTotalBytes}",
+                            "Total Transferred Bytes: ${networkUsages[index].totalTransferredBytes}",
                           ),
-                          Text("Start Date: $_startDate"),
-                          Text("End Date: $_endDate"),
+                          Text("Start Date: ${networkUsages[index].startDate}"),
+                          Text("End Date: ${networkUsages[index].endDate}"),
                         ],
                       ),
                     )
                   : Center(child: Text("No data yet."));
             },
             separatorBuilder: (context, index) => Divider(),
-            itemCount: _networksCount,
+            itemCount: networkUsages.length,
           ),
         ),
       ),

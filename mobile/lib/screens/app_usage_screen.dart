@@ -1,13 +1,10 @@
-import 'dart:convert';
-
 import 'package:app_usage/app_usage.dart';
 import 'package:aware_me/constants/constants.dart';
-import 'package:aware_me/screens/widgets/custom_alert_dialog.dart';
+import 'package:aware_me/constants/enums.dart';
 import 'package:aware_me/screens/widgets/custom_drawer.dart';
 import 'package:aware_me/service/user_service.dart';
+import 'package:aware_me/utils/data_sender.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:http/http.dart' as http;
 import 'package:logger/logger.dart';
 
 class AppUsageScreen extends StatefulWidget {
@@ -22,8 +19,7 @@ class _AppUsageScreenState extends State<AppUsageScreen> {
   var logger = Logger();
   var selectedPage = '';
   int _infosCount = 0;
-  final String apiKey = dotenv.env["API_KEY"]!;
-
+  final String _appEndpoint = "/app_usage";
   @override
   void initState() {
     super.initState();
@@ -59,76 +55,22 @@ class _AppUsageScreenState extends State<AppUsageScreen> {
   }
 
   Future<void> sendToAPI(BuildContext context) async {
-    try {
-      var url = "${Url.base}/app_usage";
-      String userId = await UserService().getUserId();
-      final List<Map<String, dynamic>> appUsageInfoList = _infos
-          .map(
-            (info) => {
-              "userId": userId,
-              "packageName": info.packageName,
-              "appName": info.appName,
-              "usage": info.usage.inSeconds,
-              "startDate": info.startDate.toIso8601String(),
-              "endDate": info.endDate.toIso8601String(),
-              "lastForegroundDate": info.lastForeground.toIso8601String(),
-            },
-          )
-          .toList();
-      if (_infosCount > 0) {
-        CustomAlertDialog.showResponseDialog(
-          // ignore: use_build_context_synchronously
-          context,
-          title: "⏳ Sending data",
-          message: "",
-          isSendingData: true,
-        );
-        var response = await http.post(
-          Uri.parse(url),
-          headers: {
-            "Content-Type": "application/json; charset=UTF-8",
-            "api-key": apiKey,
+    String userId = await UserService().getUserId();
+    final List<Map<String, dynamic>> appUsageInfoList = _infos
+        .map(
+          (info) => {
+            "userId": userId,
+            "packageName": info.packageName,
+            "appName": info.appName,
+            "usage": info.usage.inSeconds,
+            "startDate": info.startDate.toIso8601String(),
+            "endDate": info.endDate.toIso8601String(),
+            "lastForegroundDate": info.lastForeground.toIso8601String(),
           },
-          body: jsonEncode(appUsageInfoList),
-        );
-        // ignore: use_build_context_synchronously
-        Navigator.of(context).pop();
-        if (response.statusCode == 200) {
-          final data = jsonDecode(response.body);
-          CustomAlertDialog.showResponseDialog(
-            // ignore: use_build_context_synchronously
-            context,
-            title: "✅ Success",
-            message:
-                "${data['new_inserted']} new records inserted.\n${data['duplicates_skipped']} existing records skipped.",
-          );
-        } else {
-          CustomAlertDialog.showResponseDialog(
-            // ignore: use_build_context_synchronously
-            context,
-            title: "❌ Error",
-            message:
-                "Server responded with status code ${response.statusCode}.",
-          );
-        }
-        logger.i(jsonDecode(response.body));
-      } else {
-        CustomAlertDialog.showResponseDialog(
-          // ignore: use_build_context_synchronously
-          context,
-          title: "❌ Error",
-          message: "No data to send.",
-        );
-      }
-    } catch (exception) {
-      logger.e(exception);
-      CustomAlertDialog.showResponseDialog(
-        // ignore: use_build_context_synchronously
-        context,
-        title: "⚠️ Exception",
-        message: exception.toString(),
-      );
-    }
+        )
+        .toList();
+    // ignore: use_build_context_synchronously
+    DataSender.sendData(context, _appEndpoint, appUsageInfoList);
   }
 
   @override
@@ -155,7 +97,7 @@ class _AppUsageScreenState extends State<AppUsageScreen> {
         backgroundColor: CustomColors.bgColor,
         foregroundColor: Colors.white,
       ),
-      drawer: CustomDrawer(screenName: "App Usage"),
+      drawer: CustomDrawer(screenName: ScreenName.appUsage),
       body: RefreshIndicator(
         onRefresh: getUsageStats,
         child: Scrollbar(

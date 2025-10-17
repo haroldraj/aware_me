@@ -1,14 +1,11 @@
-import 'dart:convert';
-
 import 'package:aware_me/constants/constants.dart';
-import 'package:aware_me/screens/widgets/custom_alert_dialog.dart';
+import 'package:aware_me/constants/enums.dart';
+import 'package:aware_me/models/event_info_request.dart';
 import 'package:aware_me/screens/widgets/custom_drawer.dart';
-import 'package:aware_me/service/user_service.dart';
+import 'package:aware_me/service/event_info_service.dart';
+import 'package:aware_me/utils/data_sender.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:http/http.dart' as http;
 import 'package:logger/logger.dart';
-import 'package:usage_stats/usage_stats.dart';
 
 class EventInfosScreen extends StatefulWidget {
   const EventInfosScreen({super.key});
@@ -18,10 +15,10 @@ class EventInfosScreen extends StatefulWidget {
 }
 
 class _EventInfosScreenState extends State<EventInfosScreen> {
-  List<EventUsageInfo> events = [];
+  List<EventInfoRequest> events = [];
   Logger logger = Logger();
-  int _eventsCount = 0;
-  final String apiKey = dotenv.env["API_KEY"]!;
+  final String _endpoint = "/event_info";
+  final EventInfoService _eventInfoService = EventInfoService();
 
   @override
   void initState() {
@@ -31,27 +28,11 @@ class _EventInfosScreenState extends State<EventInfosScreen> {
 
   Future<void> initUsage() async {
     try {
-      DateTime now = DateTime.now();
-      DateTime startDate = DateTime(now.year, now.month, now.day, 0, 1);
-
-      List<EventUsageInfo> queryEvents = await UsageStats.queryEvents(
-        startDate,
-        now,
-      );
-      List<EventUsageInfo> normalizedEvent = queryEvents.reversed.map((event) {
-        return EventUsageInfo(
-          eventType: event.eventType,
-          packageName: event.packageName,
-          timeStamp: DateTime.fromMillisecondsSinceEpoch(
-            int.parse(event.timeStamp!),
-          ).toIso8601String(),
-          className: event.className,
-        );
-      }).toList();
+      List<EventInfoRequest> normalizedEvent = await _eventInfoService
+          .queryEventInfo();
 
       setState(() {
         events = normalizedEvent;
-        _eventsCount = events.length;
       });
     } catch (err) {
       logger.e(err);
@@ -59,75 +40,9 @@ class _EventInfosScreenState extends State<EventInfosScreen> {
   }
 
   Future<void> sendToAPI(BuildContext context) async {
-    try {
-      var url = "${Url.base}/event_info";
-      String userId = await UserService().getUserId();
-
-      final List<Map<String, dynamic>> eventInfoList = events
-          .map(
-            (event) => {
-              "userId": userId,
-              "packageName": event.packageName,
-              "eventType": event.eventType,
-              "eventDate": event.timeStamp!,
-              "className": event.className.toString(),
-            },
-          )
-          .toList();
-      if (_eventsCount > 0) {
-        CustomAlertDialog.showResponseDialog(
-          // ignore: use_build_context_synchronously
-          context,
-          title: "⏳ Sending data",
-          message: "",
-          isSendingData: true,
-        );
-        var response = await http.post(
-          Uri.parse(url),
-          headers: {
-            "Content-Type": "application/json; charset=UTF-8",
-            "api-key": apiKey,
-          },
-          body: jsonEncode(eventInfoList),
-        );
-        // ignore: use_build_context_synchronously
-        Navigator.of(context).pop();
-        if (response.statusCode == 200) {
-          final data = jsonDecode(response.body);
-          CustomAlertDialog.showResponseDialog(
-            // ignore: use_build_context_synchronously
-            context,
-            title: "✅ Success",
-            message:
-                "${data['new_inserted']} new records inserted.\n${data['duplicates_skipped']} existing records skipped.",
-          );
-        } else {
-          CustomAlertDialog.showResponseDialog(
-            // ignore: use_build_context_synchronously
-            context,
-            title: "❌ Error",
-            message:
-                "Server responded with status code ${response.statusCode}.",
-          );
-        }
-        logger.i(jsonDecode(response.body));
-      } else {
-        CustomAlertDialog.showResponseDialog(
-          // ignore: use_build_context_synchronously
-          context,
-          title: "❌ Error",
-          message: "No data to send.",
-        );
-      }
-    } catch (exception) {
-      logger.e(exception);
-      CustomAlertDialog.showResponseDialog(
-        // ignore: use_build_context_synchronously
-        context,
-        title: "⚠️ Exception",
-        message: exception.toString(),
-      );
-    }
+    final eventJsonList = _eventInfoService.toJson(events);
+    // ignore: use_build_context_synchronously
+    DataSender.sendData(context, _endpoint, eventJsonList);
   }
 
   @override
@@ -145,7 +60,7 @@ class _EventInfosScreenState extends State<EventInfosScreen> {
             ),
             Flexible(
               child: Text(
-                "Count: $_eventsCount",
+                "Count: ${events.length}",
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             ),
@@ -154,28 +69,30 @@ class _EventInfosScreenState extends State<EventInfosScreen> {
         backgroundColor: CustomColors.bgColor,
         foregroundColor: Colors.white,
       ),
-      drawer: CustomDrawer(screenName: "Event Info"),
+      drawer: CustomDrawer(screenName: ScreenName.eventInfo),
       body: RefreshIndicator(
         onRefresh: initUsage,
         child: Scrollbar(
           child: ListView.separated(
             itemBuilder: (context, index) {
-              return _eventsCount != 0
+              return events.isNotEmpty
                   ? ListTile(
-                      title: Text(events[index].packageName!),
+                      title: Text(events[index].packageName),
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text("Last time used: ${events[index].timeStamp}"),
-                          Text("Class name: ${events[index].className}"),
+                          Text("Last time used: ${events[index].eventDate}"),
+                          events[index].className.isNotEmpty
+                              ? Text("Class name: ${events[index].className}")
+                              : SizedBox(),
                         ],
                       ),
-                      trailing: Text(events[index].eventType!),
+                      trailing: Text(events[index].eventType),
                     )
                   : Center(child: Text("No data yet."));
             },
             separatorBuilder: (context, index) => Divider(),
-            itemCount: _eventsCount,
+            itemCount: events.length,
           ),
         ),
       ),

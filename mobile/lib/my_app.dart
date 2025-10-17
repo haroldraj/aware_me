@@ -1,4 +1,4 @@
-import 'package:aware_me/screens/app_usage_screen.dart';
+import 'package:aware_me/screens/home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:usage_stats/usage_stats.dart';
 
@@ -30,7 +30,7 @@ class _MyAppState extends State<MyApp> {
         useMaterial3: true,
         appBarTheme: const AppBarTheme(centerTitle: true, elevation: 0),
       ),
-      home: AppUsageScreen(),
+      home: HomeScreen(),
     );
   }
 }
