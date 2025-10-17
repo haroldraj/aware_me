@@ -1,29 +1,21 @@
 import 'package:aware_me/constants/constants.dart';
-import 'package:aware_me/screens/app_usage_screen.dart';
+import 'package:aware_me/constants/enums.dart';
 import 'package:aware_me/screens/custom_usage_screen.dart';
 import 'package:aware_me/screens/event_infos_screen.dart';
+import 'package:aware_me/screens/home_screen.dart';
 import 'package:aware_me/screens/network_usage_screen.dart';
 import 'package:aware_me/screens/widgets/custom_alert_dialog.dart';
 import 'package:flutter/material.dart';
 
 class CustomDrawer extends StatefulWidget {
   const CustomDrawer({super.key, required this.screenName});
-  final String screenName;
+  final ScreenName screenName;
 
   @override
   State<CustomDrawer> createState() => _CustomDrawerState();
 }
 
 class _CustomDrawerState extends State<CustomDrawer> {
-  // ignore: constant_identifier_names
-  static const String APP_USAGE = "App Usage";
-  // ignore: constant_identifier_names
-  static const String CUSTOM_USAGE = "Custom Usage";
-  // ignore: constant_identifier_names
-  static const String EVENT_INFO = "Event Info";
-  // ignore: constant_identifier_names
-  static const String NETWORK_USAGE = "Network Usage";
-
   @override
   void initState() {
     super.initState();
@@ -44,37 +36,43 @@ class _CustomDrawerState extends State<CustomDrawer> {
               children: [
                 _buildDrawerItem(
                   context,
-                  icon: Icons.data_usage_rounded,
-                  title: "App Usage Screen",
-                  screenName: APP_USAGE,
-                  destination: const AppUsageScreen(),
+                  icon: Icons.home,
+                  title: "Home Screen",
+                  screenName: ScreenName.home,
+                  destination: const HomeScreen(),
                 ),
+                // _buildDrawerItem(
+                //   context,
+                //   icon: Icons.data_usage_rounded,
+                //   title: "App Usage Screen",
+                //   screenName: ScreenName.appUsage,
+                //   destination: const AppUsageScreen(),
+                // ),
                 _buildDrawerItem(
                   context,
                   icon: Icons.event,
-                  title: "Event Infos Screen",
-                  screenName: EVENT_INFO,
+                  title: "Event Info Screen",
+                  screenName: ScreenName.eventInfo,
                   destination: const EventInfosScreen(),
                 ),
                 _buildDrawerItem(
                   context,
                   icon: Icons.people,
                   title: "Custom Usage Screen",
-                  screenName: CUSTOM_USAGE,
+                  screenName: ScreenName.customUsage,
                   destination: const CustomUsageScreen(),
                 ),
                 _buildDrawerItem(
                   context,
                   icon: Icons.network_cell,
                   title: "Network Usage Screen",
-                  screenName: NETWORK_USAGE,
+                  screenName: ScreenName.networkUsage,
                   destination: const NetworkUsageScreen(),
                 ),
               ],
             ),
           ),
 
-          // ✅ Footer
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 12.0),
             child: Column(
@@ -114,7 +112,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
     BuildContext context, {
     required IconData icon,
     required String title,
-    required String screenName,
+    required ScreenName screenName,
     required Widget destination,
   }) {
     return ListTile(
