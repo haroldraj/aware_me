@@ -8,7 +8,7 @@ from src.model.custom_usage_model import CustomUsage, CustomUsageRequest
 from src.model.event_info_model import EventInfo, EventInfoRequest
 from src.model.event_type_model import EventType
 from src.model.network_usage_model import NetworkUsage, NetworkUsageRequest
-from src.resource.event_type_data import EVENT_TYPE_DATA
+from src.resource.event_type_reviewed import EVENT_TYPE_DATA
 from dotenv import load_dotenv
 
 load_dotenv()
